@@ -1,761 +1,108 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>liquidGL - Real-time WebGL Liquid Glass Effect - NaughtyDuk©</title>
-    <link rel="icon" href="/assets/favicon.ico" />
-    <meta name="description" content="liquidGL is a real-time liquid glass effect for the web. Built with love by NaughtyDuk©">
-    <meta name="keywords" content="liquidGL, webGL, liquid glass, real-time, refraction, video, text, animations, NaughtyDuk©">
-    <meta name="author" content="NaughtyDuk©">
-    <meta name="robots" content="index, follow">
-    <meta name="googlebot" content="index, follow">
-    <meta property="og:image" content="/assets/liquidGL-social.jpg">
-    <meta property="og:title" content="liquidGL - Real-time WebGL Liquid Glass Effect">
-    <meta property="og:description" content="liquidGL is a real-time liquid glass effect for the web. Built with love by NaughtyDuk©">
-    <meta property="og:url" content="https://liquidgl.naughtyduk.com">
-    <meta property="og:type" content="website">
-    <meta property="og:locale" content="en_GB">
-    <meta property="og:site_name" content="liquidGL">
-    <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="liquidGL - Real-time WebGL Liquid Glass Effect">
-    <meta name="twitter:description" content="liquidGL is a real-time liquid glass effect for the web. Built with love by NaughtyDuk©">
-    <meta name="twitter:image" content="/assets/liquidGL-social.jpg">
-    <meta name="twitter:url" content="https://liquidgl.naughtyduk.com">
-    <style>
-      :root {
-        --bg: #f0f0f0;
-        --fg: #333;
-      }
-      * {
-        box-sizing: border-box;
-        margin: 0;
-        padding: 0;
-      }
-      body {
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-          Helvetica, Arial, sans-serif;
-        background: var(--bg);
-        color: var(--fg);
-        line-height: 1.5;
-        -webkit-font-smoothing: antialiased;
-      }
-      /* ===== Single full-viewport lens ===== */
-      .shape {
-        position: fixed;
-        top: 10vw;
-        left: 10vw;
-        width: calc(100vw - 20vw);
-        height: calc(100svh - 20vw);
-        border-radius: 2vw;
-        transform: scaleX(0);
-        transform-origin: center;
-        will-change: transform;
-        pointer-events: none;
-        z-index: 9999;
-      }
 
-      @media screen and (max-width: 768px) {
-        .shape {
-          position: fixed;
-          top: 50%;
-          left: 50%;
-          transform: translate(-50%, -50%);
-          width: calc(100% - 2.5rem);
-          height: calc(65svh);
-          border-radius: 4vw;
-          will-change: transform;
-          pointer-events: auto;
-          z-index: 9999;
-        }
-      }
-
-      .content-section {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        height: 100svh;
-        padding: 0 10vw;
-        position: relative;
-        overflow: hidden;
-        background-size: cover;
-        background-position: center;
-      }
-
-      .footer-section {
-        background-color: #111;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        position: relative;
-        padding: 0;
-      }
-
-      .text-section {
-        background-color: #000;
-      }
-
-      .hero-section {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        height: 100svh;
-        gap: 2vw;
-      }
-
-      .video-section {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        height: auto!important;
-        padding: 10vw 0;
-      }
-
-      .banner-text-container {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        gap: 1rem;
-      }
-
-      .banner-text {
-        width: 100%;
-        text-align: center;
-        font-size: 6vw;
-        font-weight: 800;
-        text-transform: uppercase;
-        color: #f5f5f5;
-        pointer-events: none;
-        line-height: 0.85;
-      }
-
-      .banner-text a {
-        color: #f5f5f5;
-        pointer-events: auto;
-        text-decoration: none;
-      }
-
-      .banner-text.xl {
-        font-size: 10vw;
-        letter-spacing: -0.025em;
-        text-transform: none;
-        font-weight: 700;
-      }
-
-      .banner-text.sm {
-        font-size: 2vw;
-        letter-spacing: -0.01em;
-      }
-
-      .banner-text.xs {
-        font-size: 1vw;
-        line-height: 1.2;
-        max-width: 26vw;
-      }
-
-      .banner-text.dark {
-        color: #333333;
-      }
-
-      .banner-text-button {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.75rem;
-        background: transparent;
-        color: #f5f5f5;
-        padding: 0.75rem 1.5rem;
-        border: 1px solid #f5f5f5;
-        border-radius: 8px;
-        cursor: pointer;
-        font-size: 1.125rem;
-        font-weight: 600;
-        text-decoration: none;
-        transition: all 0.2s ease-in-out;
-        margin-top: 1rem;
-      }
-
-      .banner-text-button.dark {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.75rem;
-        background: transparent;
-        color: #333333;
-        padding: 0.75rem 1.5rem;
-        border: 1px solid #333333;
-        border-radius: 8px;
-        cursor: pointer;
-        font-size: 1.125rem;
-        font-weight: 600;
-        text-decoration: none;
-        transition: all 0.2s ease-in-out;
-        margin-top: 1rem;
-      }
-
-      .banner-text-button:hover {
-        opacity: 0.8;
-      }
-
-      .banner-text-button svg {
-        width: 1.5rem;
-        height: 1.5rem;
-        fill: currentColor;
-      }
-
-      @media (max-width: 768px) {
-        .banner-text-button {
-          width: 60vw;
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          text-align: center;
-        }
-
-        .banner-text.xs {
-          font-size: 4vw;
-          max-width: 100vw;
-        }
-
-        .banner-text.sm {
-          font-size: 6vw;
-        }
-
-        .banner-text.xl {
-          font-size: 16vw;
-        }
-      }
-
-      .banner-video {
-        width: 100%;
-        height: auto;
-        object-fit: cover;
-        pointer-events: none;
-        border-radius: 2vw;
-        max-width: 60vw;
-      }
-
-      .split {
-        visibility: hidden;
-      }
-
-      .video-hover-area {
-        display: inline-block;
-        position: relative;
-        line-height: 0;
-        cursor: pointer;
-      }
-
-      .section-title-container {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 0 0 5vw 0;
-        width: 100%;
-      }
-
-      .section-title-container.footer {
-        padding: 0 0 4vw 0;
-      }
-
-      /* Video Player Styles */
-      .play-icon {
-        position: fixed;
-        width: 10vw;
-        height: 10vw;
-        top: 0;
-        left: 0;
-        pointer-events: none;
-        z-index: 10000;
-        mix-blend-mode: difference;
-      }
-
-      .fullscreen-player {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100vw;
-        height: 100svh;
-        background: #111111;
-        z-index: 99999;
-      }
-
-      .fullscreen-player.inactive .custom-controls,
-      .fullscreen-player.inactive .close-btn {
-        opacity: 0;
-      }
-
-      .fullscreen-player video {
-        width: 100vw;
-        height: 100vh;
-        object-fit: cover;
-      }
-
-      @media (max-width: 768px) {
-        .fullscreen-player video {
-          width: 100%;
-          height: 100%;
-          object-fit: contain;
-        }
-      }
-
-      .hero-video {
-        z-index: -1;
-      }
-
-      .close-btn {
-        position: absolute;
-        top: 3vw;
-        right: 3vw;
-        width: 30px;
-        height: 30px;
-        cursor: pointer;
-        z-index: 100000;
-        mix-blend-mode: difference;
-      }
-
-      .close-btn:before,
-      .close-btn:after {
-        content: "";
-        position: absolute;
-        left: 0;
-        top: 50%;
-        width: 100%;
-        height: 2px;
-        background: #fff;
-        transform-origin: center;
-      }
-
-      .close-btn:before {
-        transform: translateY(-50%) rotate(45deg);
-      }
-
-      .close-btn:after {
-        transform: translateY(-50%) rotate(-45deg);
-      }
-
-      .close-btn:focus-visible {
-        box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.7);
-      }
-
-      /* Custom Controls Container */
-      .custom-controls {
-        position: absolute;
-        bottom: 3vw;
-        left: 50%;
-        transform: translateX(-50%);
-        width: 90%;
-        max-width: 800px;
-        display: flex;
-        align-items: center;
-        gap: 15px;
-        padding: 10px 15px 10px 10px;
-        border-radius: 10px;
-        background: #e8e8e8;
-        transition: opacity 0.4s ease;
-        mix-blend-mode: exclusion;
-      }
-
-      /* Play/Pause Button */
-      .play-pause-btn {
-        background: none;
-        border: none;
-        cursor: pointer;
-        padding: 0;
-        width: 24px;
-        height: 24px;
-        position: relative;
-        outline: none;
-        flex-shrink: 0;
-      }
-
-      /* Play icon (triangle) */
-      .play-pause-btn::before {
-        content: "";
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        width: 0;
-        height: 0;
-        border-top: 8px solid transparent;
-        border-bottom: 8px solid transparent;
-        border-left: 14px solid #333333;
-        transition: all 0.2s ease;
-      }
-
-      /* Pause icon (two bars) */
-      .play-pause-btn.playing::before {
-        border-style: double;
-        border-width: 0 0 0 14px;
-        border-color: #333333;
-        height: 16px;
-        width: 6px;
-        border-left-style: solid;
-        border-right-style: solid;
-        border-left-width: 5px;
-        border-right-width: 5px;
-        transform: translate(-50%, -50%);
-      }
-
-      /* Progress Bar */
-      .progress-bar-container {
-        flex-grow: 1;
-        height: 6px;
-        background: #cdcdcd;
-        border-radius: 3px;
-        cursor: pointer;
-      }
-
-      .progress-bar-fill {
-        width: 0;
-        height: 100%;
-        border-radius: 3px;
-        background: #333333;
-      }
-
-      /* Features Section */
-      .features-section {
-        height: auto !important;
-        padding: 10vw 0;
-        background-color: #f5f5f7;
-        flex-direction: column;
-        gap: 4vw;
-      }
-      .features-card {
-        background: #fafafa;
-        color: #333;
-        border-radius: 2vw;
-        padding: 4vw;
-        width: 100%;
-        max-width: 70vw;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
-        text-align: left;
-      }
-      .features-list {
-        list-style: none;
-        padding: 0;
-        margin: 0 0 2vw 0;
-        width: 100%;
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 1.5rem 2rem;
-      }
-      .feature-item {
-        display: flex;
-        align-items: flex-start;
-        justify-content: center;
-        gap: 1rem;
-        font-size: 1.2rem;
-        font-weight: 500;
-        line-height: 1.4;
-      }
-      .feature-item svg {
-        flex-shrink: 0;
-        width: 1.5rem;
-        height: 1.5rem;
-        fill: #007aff; /* Apple blue */
-        margin-top: 0.1em;
-      }
-
-      .features-button {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.75rem;
-        padding: 0.75rem 1.5rem;
-        border-radius: 8px;
-        cursor: pointer;
-        font-size: 1.125rem;
-        font-weight: 600;
-        text-decoration: none;
-        transition: all 0.2s ease-in-out;
-        margin-top: 1rem;
-        color: #333;
-        border: 1px solid #333;
-        background: #fff;
-      }
-
-      .features-button:hover {
-        background: #333;
-        color: #fff;
-      }
-
-      .features-button svg {
-        width: 1.5rem;
-        height: 1.5rem;
-        fill: currentColor;
-      }
-
-      /* Responsive */
-      @media (max-width: 1395px) {
-        .features-list {
-          grid-template-columns: repeat(2, 1fr);
-        }
-      }
-
-      @media (max-width: 925px) {
-        .features-card {
-          max-width: 90vw;
-          padding: 6vw;
-        }
-        .features-list {
-          grid-template-columns: 1fr;
-          gap: 1rem;
-        }
-        .feature-item {
-          font-size: 1rem;
-        }
-      }
-
-      /* ===== Preloader ===== */
-      .preloader {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background-color: #111111;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        z-index: 100000;
-        color: #f5f5f5;
-      }
-      .preloader-inner {
-        text-align: center;
-      }
-      .preloader-progress-bar {
-        width: 200px;
-        height: 2px;
-        background-color: rgba(255, 255, 255, 0.2);
-        margin: 0 auto 1rem;
-        overflow: hidden;
-      }
-      .preloader-progress {
-        width: 0%;
-        height: 100%;
-        background-color: #f5f5f5;
-        transform-origin: left;
-      }
-
-      .footer-logo {
-        margin-top: 2vw;
-        width: 100px;
-        height: auto;
-      }
-
-      .lil-gui {
-        --focus-color: #f5f5f5;
-        --number-color: #f5f5f5;
-      }
-
-      .lil-gui.autoPlace {
-        z-index: 10000;
-      }
-
-      /* Global Navigation Styles */
-      .global-nav {
-        position: fixed;
-        top: 1rem;
-        left: 1rem;
-        z-index: 10000;
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      }
-
-      .nav-container {
-        background: rgb(9 9 11 / 85%);
-        backdrop-filter: blur(16px);
-        border-radius: 12px;
-        border: 0.5px solid #1e1e20;
-        overflow: hidden;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        box-shadow: 0 4px 16px rgb(0 0 0 / 20%);
-      }
-
-      .nav-toggle {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 12px 16px;
-        background: transparent;
-        border: none;
-        color: #fafafa;
-        cursor: pointer;
-        font-size: 14px;
-        font-weight: 500;
-        width: 100%;
-        text-align: left;
-        transition: all 0.2s ease;
-      }
-
-      .nav-toggle:hover {
-        background: rgb(39 39 42 / 50%);
-      }
-
-      .nav-toggle svg {
-        width: 16px;
-        height: 16px;
-        fill: currentColor;
-        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      }
-
-      .nav-container.expanded .nav-toggle svg {
-        transform: rotate(180deg);
-      }
-
-      .nav-menu {
-        max-height: 0;
-        overflow: hidden;
-        transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      }
-
-      .nav-container.expanded .nav-menu {
-        max-height: 300px;
-      }
-
-      .nav-item {
-        display: block;
-        padding: 10px 16px;
-        color: #a1a1aa;
-        text-decoration: none;
-        font-size: 13px;
-        font-weight: 400;
-        transition: all 0.2s ease;
-        border-top: 0.5px solid #1e1e20;
-        position: relative;
-        cursor: pointer;
-      }
-
-      .nav-item:hover {
-        background: rgb(39 39 42 / 50%);
-        color: #fafafa;
-      }
-
-      .nav-item.active {
-        color: #fafafa;
-        background: rgb(39 39 42 / 30%);
-      }
-
-      .nav-item.active::before {
-        content: '';
-        position: absolute;
-        left: 0;
-        top: 0;
-        bottom: 0;
-        width: 2px;
-        background: #fafafa;
-      }
-
-      @media (max-width: 768px) {
-        .global-nav {
-          top: 0.5rem;
-          left: 0.5rem;
-        }
-        
-        .nav-toggle {
-          padding: 10px 14px;
-          font-size: 13px;
-        }
-        
-        .nav-item {
-          padding: 8px 14px;
-          font-size: 12px;
-        }
-      }
-    </style>
-  </head>
-  <body>
-    <!-- Global Navigation -->
-    <nav class="global-nav">
-      <div class="nav-container">
-        <button class="nav-toggle" aria-expanded="false" aria-label="Toggle navigation menu">
-          <span>Demos</span>
-          <svg viewBox="0 0 16 16">
-            <path d="M8 11L3 6h10l-5 5z"/>
-          </svg>
-        </button>
-        <div class="nav-menu">
-          <a href="index.html" class="nav-item active">Index</a>
-          <a href="demos/demo-1.html" class="nav-item">D1 - Nav Bar</a>
-          <a href="demos/demo-2.html" class="nav-item">D2 - Bank Card</a>
-          <a href="demos/demo-3.html" class="nav-item">D3 - Animate</a>
-          <a href="demos/demo-4.html" class="nav-item">D4 - Cards</a>
-          <a href="demos/demo-5.html" class="nav-item">D5 - Reveal</a>
-        </div>
-      </div>
-    </nav>
-
-    <div class="preloader" data-liquid-ignore>
-      <div class="preloader-inner">
-        <div class="preloader-progress-bar">
-          <div class="preloader-progress"></div>
-        </div>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>liquidGL - Real-time WebGL Liquid Glass Effect - NaughtyDuk©</title>
+  <link rel="icon" href="/assets/favicon.ico" />
+  <meta name="description"
+    content="liquidGL is a real-time liquid glass effect for the web. Built with love by NaughtyDuk©">
+  <meta name="keywords"
+    content="liquidGL, webGL, liquid glass, real-time, refraction, video, text, animations, NaughtyDuk©">
+  <meta name="author" content="NaughtyDuk©">
+  <meta name="robots" content="index, follow">
+  <meta name="googlebot" content="index, follow">
+  <meta property="og:image" content="/assets/liquidGL-social.jpg">
+  <meta property="og:title" content="liquidGL - Real-time WebGL Liquid Glass Effect">
+  <meta property="og:description"
+    content="liquidGL is a real-time liquid glass effect for the web. Built with love by NaughtyDuk©">
+  <meta property="og:url" content="https://liquidgl.naughtyduk.com">
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="en_GB">
+  <meta property="og:site_name" content="liquidGL">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="liquidGL - Real-time WebGL Liquid Glass Effect">
+  <meta name="twitter:description"
+    content="liquidGL is a real-time liquid glass effect for the web. Built with love by NaughtyDuk©">
+  <meta name="twitter:image" content="/assets/liquidGL-social.jpg">
+  <meta name="twitter:url" content="https://liquidgl.naughtyduk.com">
+  <link rel="stylesheet" href="/css/styles.css" />
+</head>
+
+<body>
+  <!-- Global Navigation -->
+  <nav class="global-nav">
+    <div class="nav-container">
+      <button class="nav-toggle" aria-expanded="false" aria-label="Toggle navigation menu">
+        <span>Demos</span>
+        <svg viewBox="0 0 16 16">
+          <path d="M8 11L3 6h10l-5 5z" />
+        </svg>
+      </button>
+      <div class="nav-menu">
+        <a href="index.html" class="nav-item active">Index</a>
+        <a href="demos/demo-1.html" class="nav-item">D1 - Nav Bar</a>
+        <a href="demos/demo-2.html" class="nav-item">D2 - Bank Card</a>
+        <a href="demos/demo-3.html" class="nav-item">D3 - Animate</a>
+        <a href="demos/demo-4.html" class="nav-item">D4 - Cards</a>
+        <a href="demos/demo-5.html" class="nav-item">D5 - Reveal</a>
       </div>
     </div>
-    <div class="main-content">
-      <div class="content-section hero-section">
-        <video class="hero-video"
-          autoplay
-          loop
-          muted
-          playsinline
-          style="
+  </nav>
+
+  <div class="preloader" data-liquid-ignore>
+    <div class="preloader-inner">
+      <div class="preloader-progress-bar">
+        <div class="preloader-progress"></div>
+      </div>
+    </div>
+  </div>
+  <div class="main-content">
+    <div class="content-section hero-section">
+      <video class="hero-video" autoplay loop muted playsinline style="
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
             object-fit: cover;
-          "
-        >
-          <source src="/assets/loop-opt.mp4" type="video/mp4" />
-        </video>
-        <div class="banner-text-container">
-          <div class="banner-text sm">Introducing</div>
-          <div class="banner-text xl">liquidGL</div>
-          <div class="banner-text xs">
-          </br></br>A real-time liquid glass effect for the web. Built with love by <a target="_blank" href="https://naughtyduk.com">NaughtyDuk©</a>
-          </div>
-        </div>
-        <div class="banner-text-container">
-          <a href="https://github.com/naughtyduk/liquidgl" target="_blank" class="banner-text-button">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor">
-                <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
-            </svg>
-            <span>View on GitHub</span>
-          </a>
+          ">
+        <source src="/assets/loop-opt.mp4" type="video/mp4" />
+      </video>
+      <div class="banner-text-container">
+        <div class="banner-text sm">Introducing</div>
+        <div class="banner-text xl">liquidGL</div>
+        <div class="banner-text xs">
+          <br><br>A real-time liquid glass effect for the web. Built with love by <a target="_blank"
+            href="https://naughtyduk.com">NaughtyDuk©</a>
         </div>
       </div>
-      <div
-        class="content-section video-section"
-      >
+      <div class="banner-text-container">
+        <a href="https://github.com/naughtyduk/liquidgl" target="_blank" class="banner-text-button">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor">
+            <path
+              d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z" />
+          </svg>
+          <span>View on GitHub</span>
+        </a>
+      </div>
+    </div>
+    <div class="content-section video-section">
       <div class="section-title-container">
         <div class="banner-text dark sm">Watch Video</div>
       </div>
-        <div class="video-hover-area">
-          <video
-            class="banner-video"
-            src="/assets/liquidGlass-Full-Promo25fps-OPT.mp4"
-            autoplay
-            muted
-            loop
-            playsinline
-          ></video>
-        </div>
+      <div class="video-hover-area">
+        <video class="banner-video" src="/assets/liquidGlass-Full-Promo25fps-OPT.mp4" autoplay muted loop
+          playsinline></video>
       </div>
-      <div
-      class="content-section"
-      style="background-image: url(/assets/liquid-bkg-_0001_Comp-183.webp)"
-    >
-    <div class="banner-text split">
-      LIQUIDGL NOW SUPPORTS REAL TIME REFRACTION FOR VIDEO AND TEXT ANIMATIONS
     </div>
+    <div class="content-section" style="background-image: url(/assets/liquid-bkg-_0001_Comp-183.webp)">
+      <div class="banner-text split">
+        LIQUIDGL NOW SUPPORTS REAL TIME REFRACTION FOR VIDEO AND TEXT ANIMATIONS
+      </div>
     </div>
-      <div
-        class="content-section features-section"
-      >
+    <div class="content-section features-section">
       <div class="section-title-container">
         <div class="banner-text dark sm">Features</div>
       </div>
@@ -815,19 +162,19 @@
             </svg>
             <span>Dynamic Element Support</span>
           </li>
-           <li class="feature-item">
+          <li class="feature-item">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
               <path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z" />
             </svg>
-            <span>Lightweight & Performant</span>
+            <span>Lightweight &amp; Performant</span>
           </li>
-           <li class="feature-item">
+          <li class="feature-item">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
               <path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z" />
             </svg>
             <span>Seamless Scroll Sync</span>
           </li>
-           <li class="feature-item">
+          <li class="feature-item">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
               <path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z" />
             </svg>
@@ -839,13 +186,13 @@
             </svg>
             <span>Auto Video Refraction</span>
           </li>
-           <li class="feature-item">
+          <li class="feature-item">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
               <path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z" />
             </svg>
             <span>Animate Lenses</span>
           </li>
-           <li class="feature-item">
+          <li class="feature-item">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
               <path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z" />
             </svg>
@@ -855,442 +202,66 @@
         <div class="banner-text-container">
           <a href="https://github.com/naughtyduk/liquidgl" target="_blank" class="banner-text-button dark">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor">
-                <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
+              <path
+                d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z" />
             </svg>
             <span>View on GitHub</span>
           </a>
         </div>
       </div>
     </div>
-      <div
-        class="content-section"
-        style="background-image: url(/assets/liquid-bkg-_0002_Comp-163.webp)"
-      >
-        <div class="banner-text split">
-          THIS TEXT IS ANIMATED WITH GSAP SPLITTEXT AND REFRACTED IN REAL TIME
-          AS YOU SCROLL.
-        </div>
+    <div class="content-section" style="background-image: url(/assets/liquid-bkg-_0002_Comp-163.webp)">
+      <div class="banner-text split">
+        THIS TEXT IS ANIMATED WITH GSAP SPLITTEXT AND REFRACTED IN REAL TIME
+        AS YOU SCROLL.
       </div>
-      <div
-        class="content-section footer-section" 
-      >
+    </div>
+    <div class="content-section footer-section">
       <div class="banner-text-container">
         <a href="https://github.com/naughtyduk/liquidgl" target="_blank" class="banner-text-button">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor">
-              <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
+            <path
+              d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z" />
           </svg>
           <span>View on GitHub</span>
         </a>
         <img src="/assets/naughtyduk-logo.svg" class="footer-logo" alt="NaughtyDuk©" />
       </div>
     </div>
-    </div>
+  </div>
 
-    <!-- Single lens shape -->
-    <div class="shape liquidGL"></div>
+  <!-- Single lens shape -->
+  <div class="shape liquidGL"></div>
 
-    <!-- Fullscreen Video Player -->
-    <div class="fullscreen-player">
-      <div
-        class="close-btn"
-        tabindex="0"
-        role="button"
-        aria-label="Close video player"
-      ></div>
-      <video src="/assets/liquidGlass-Full-Promo25fps-OPT.mp4"></video>
-      <div class="custom-controls">
-        <button
-          class="play-pause-btn"
-          role="button"
-          aria-label="Play video"
-        ></button>
-        <div class="progress-bar-container">
-          <div class="progress-bar-fill"></div>
-        </div>
+  <!-- Fullscreen Video Player -->
+  <div class="fullscreen-player">
+    <div class="close-btn" tabindex="0" role="button" aria-label="Close video player"></div>
+    <video src="/assets/liquidGlass-Full-Promo25fps-OPT.mp4"></video>
+    <div class="custom-controls">
+      <button class="play-pause-btn" role="button" aria-label="Play video"></button>
+      <div class="progress-bar-container">
+        <div class="progress-bar-fill"></div>
       </div>
     </div>
-    <img src="/assets/play-icon.svg" class="play-icon" alt="Play" />
-    
-    <!-- Libraries -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/SplitText.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/lil-gui@0.19.1/dist/lil-gui.umd.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@studio-freight/lenis@1.0.42/dist/lenis.min.js"></script>
-    
-    <!-- Scripts -->
-    <script src="/scripts/html2canvas.min.js"></script>
-    <script src="/scripts/liquidGL.js"></script>
-    <script>
-      /* OPTIONAL - Register GSAP SplitText */
-      gsap.registerPlugin(SplitText);
+  </div>
+  <img src="/assets/play-icon.svg" class="play-icon" alt="Play" />
 
-      /* OPTIONAL - glassEffect variable declared globally so it can be 
-      accessed by the custom controls */
-      let glassEffect;
+  <!-- External Libraries -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/SplitText.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lil-gui@0.19.1/dist/lil-gui.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@studio-freight/lenis@1.0.42/dist/lenis.min.js"></script>
 
-      /* RECOMMENDED - DOMContentLoaded Event */
-      document.addEventListener("DOMContentLoaded", () => {
-        /* Global Navigation Setup */
-        const navToggle = document.querySelector('.nav-toggle');
-        const navContainer = document.querySelector('.nav-container');
-        
-        if (navToggle && navContainer) {
-          navToggle.addEventListener('click', () => {
-            const isExpanded = navContainer.classList.contains('expanded');
-            navContainer.classList.toggle('expanded');
-            navToggle.setAttribute('aria-expanded', !isExpanded);
-          });
+  <!-- Local Libraries -->
+  <script src="/scripts/html2canvas.min.js"></script>
+  <script src="/scripts/liquidGL.js"></script>
 
-          // Close navigation when clicking outside
-          document.addEventListener('click', (e) => {
-            if (!navContainer.contains(e.target)) {
-              navContainer.classList.remove('expanded');
-              navToggle.setAttribute('aria-expanded', 'false');
-            }
-          });
+  <!-- Application Modules -->
+  <script src="/scripts/navigation.js"></script>
+  <script src="/scripts/preloader.js"></script>
+  <script src="/scripts/liquidgl-init.js"></script>
+  <script src="/scripts/video-player.js"></script>
+</body>
 
-          // Close navigation when pressing Escape
-          document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && navContainer.classList.contains('expanded')) {
-              navContainer.classList.remove('expanded');
-              navToggle.setAttribute('aria-expanded', 'false');
-            }
-          });
-        }
-
-        /* OPTIONAL - Preloader */
-        const preloader = document.querySelector(".preloader");
-        const preloaderProgress = document.querySelector(".preloader-progress");
-
-        let progress = { value: 0 };
-        const loadingTl = gsap.timeline();
-        loadingTl.to(progress, {
-          value: 100,
-          duration: 1.5,
-          ease: "power1.inOut",
-          onUpdate: () => {
-            gsap.set(preloaderProgress, { width: `${progress.value}%` });
-          },
-        });
-
-        /* RECOMMENDED - Wait for fonts to be loaded */
-        const fontsReady =
-          document.fonts && document.fonts.ready
-            ? document.fonts.ready
-            : Promise.resolve();
-
-        fontsReady.then(() => {
-          /* 1. OPTIONAL - PREPARE ANIMATIONS BEFORE INITIALISING LIQUIDGL */
-          gsap.set(".split", { visibility: "visible" });
-          const allSplitLines = [];
-
-          gsap.utils.toArray(".split").forEach((splitEl) => {
-            const split = SplitText.create(splitEl, {
-              type: "lines",
-              linesClass: "line",
-              mask: "lines",
-            });
-
-            gsap.from(split.lines, {
-              scrollTrigger: {
-                trigger: splitEl,
-                start: "top 50%",
-                toggleActions: "play none none reverse",
-              },
-              duration: 1.2,
-              yPercent: 180,
-              stagger: 0.1,
-              ease: "expo.out",
-            });
-
-            allSplitLines.push(...split.lines);
-          });
-
-          /* 2. REQUIRED - INITIALISE LIQUIDGL */
-          /* Responsive refraction value */
-          const getRefractionValue = () => {
-            return window.innerWidth <= 767 ? 0.011 : 0.026;
-          };
-
-          glassEffect = liquidGL({
-            target: ".liquidGL",
-            snapshot: "body",
-            resolution: 2,
-            refraction: getRefractionValue(),
-            bevelDepth: 0.119,
-            bevelWidth: 0.057,
-            frost: 0,
-            specular: true,
-            shadow: true,
-            reveal: "fade",
-            tilt: false,
-            tiltFactor: 10,
-            magnify: 1,
-            on: {
-              init: function (intro) {
-                /* OPTIONAL - GSAP ANIMATION OF TARGET ELEMENT */
-                /* You can animate the target element to create a more dynamic effect,
-                or use the on.init callback to run any code after liquidGL is initialised. */
-                /* Preloader Animation */
-                loadingTl.then(() => {
-                  gsap.to(preloader, {
-                    yPercent: -100,
-                    duration: 1,
-                    ease: "expo.inOut",
-                    onComplete: () => {
-                      preloader.style.display = "none";
-                    },
-                  });
-                  /* Target Animation */
-                  gsap.to(intro.el, {
-                    scaleX: 1,
-                    duration: 1.2,
-                    ease: "expo.out",
-                    delay: 0.5,
-                  });
-                });
-              },
-            },
-          });
-
-          /* Handle responsive refraction on window resize */
-          window.addEventListener('resize', () => {
-            const newRefraction = getRefractionValue();
-            if (glassEffect && glassEffect.options) {
-              glassEffect.options.refraction = newRefraction;
-            }
-          });
-
-          /* 3. REQUIRED FOR DYNAMIC ELEMENTS - REGISTER DYNAMIC ELEMENTS */
-          /* You need to register any elements that intersect the target which
-          you want to be refracted. For example animated content, text, etc. 
-          You do not need to register videos, they are automatically registered. */
-          liquidGL.registerDynamic(allSplitLines);
-          liquidGL.registerDynamic(".banner-text-container");
-
-          console.log("liquidGL ready!", glassEffect);
-
-          /* 4. OPTIONAL - UNIVERSAL SCROLL/ANIMATION SYNC */
-          /* Works automatically with Lenis, Locomotive Scroll, GSAP, GSAP ScrollTrigger.
-          Recommended use is to include Lenis, GSAP and GSAP ScrollTrigger libraries. */
-          liquidGL.syncWith();
-
-          /* DEMO ONLY - GUI CONTROLS, NOT REQUIRED FOR LIBRARY USAGE */
-          const lensArr = Array.isArray(glassEffect)
-            ? glassEffect
-            : [glassEffect];
-          const first = lensArr[0];
-
-          if (first) {
-            const gui = new lil.GUI();
-            const folder = gui.addFolder("liquidGL Effect");
-
-            const sync = (key, value) => {
-              lensArr.forEach((ln) => {
-                if (!ln) return;
-                ln.options[key] = value;
-                if (key === "shadow") ln.setShadow(value);
-                if (key === "tilt") ln.setTilt(value);
-              });
-            };
-
-            folder
-              .add(first.options, "refraction", 0, 0.1, 0.001)
-              .onChange((v) => sync("refraction", v));
-            folder
-              .add(first.options, "bevelDepth", 0, 0.2, 0.001)
-              .onChange((v) => sync("bevelDepth", v));
-            folder
-              .add(first.options, "bevelWidth", 0, 0.5, 0.001)
-              .onChange((v) => sync("bevelWidth", v));
-            folder
-              .add(first.options, "frost", 0, 10, 0.1)
-              .onChange((v) => sync("frost", v));
-            folder
-              .add(first.options, "magnify", 1, 5, 0.1)
-              .onChange((v) => sync("magnify", v));
-            folder
-              .add(first.options, "shadow")
-              .onChange((v) => sync("shadow", v));
-            folder
-              .add(first.options, "specular")
-              .onChange((v) => sync("specular", v));
-            folder
-              .add(first.options, "tilt")
-              .onChange((v) => sync("tilt", v));
-            folder
-              .add(first.options, "tiltFactor", 0, 25, 0.1)
-              .onChange((v) => sync("tiltFactor", v));
-            folder
-              .add(first.options, "reveal", ["none", "fade"])
-              .onChange((v) => sync("reveal", v));
-            folder.close();
-          }
-        });
-      });
-    </script>
-    <script>
-      /* DEMO ONLY - VIDEO PLAYER, NOT REQUIRED FOR LIBRARY USAGE */
-      document.addEventListener("DOMContentLoaded", () => {
-        const videoTrigger = document.querySelector(".video-hover-area");
-        const playIcon = document.querySelector(".play-icon");
-        const fullscreenPlayer = document.querySelector(".fullscreen-player");
-        const fullscreenVideo = fullscreenPlayer.querySelector("video");
-        const closeBtn = document.querySelector(".close-btn");
-
-        const customControls = document.querySelector(".custom-controls");
-        const playPauseBtn = document.querySelector(".play-pause-btn");
-        const progressBarContainer = document.querySelector(
-          ".progress-bar-container"
-        );
-        const progressBarFill = document.querySelector(".progress-bar-fill");
-
-        if (!videoTrigger) return;
-
-        videoTrigger.style.cursor = "pointer";
-
-        gsap.set(playIcon, {
-          scale: 0,
-          autoAlpha: 0,
-          xPercent: -50,
-          yPercent: -50,
-        });
-
-        gsap.set(fullscreenPlayer, {
-          xPercent: -100,
-          visibility: "hidden",
-        });
-
-        let inactivityTimer;
-
-        const hideControls = () => {
-          if (!fullscreenVideo.paused) {
-            fullscreenPlayer.classList.add("inactive");
-          }
-        };
-
-        const resetInactivityTimer = () => {
-          fullscreenPlayer.classList.remove("inactive");
-          clearTimeout(inactivityTimer);
-          inactivityTimer = setTimeout(hideControls, 3000);
-        };
-
-        fullscreenPlayer.addEventListener("mousemove", resetInactivityTimer);
-        fullscreenPlayer.addEventListener("touchstart", resetInactivityTimer);
-
-        const togglePlayPause = () => {
-          if (fullscreenVideo.paused) {
-            fullscreenVideo.play();
-            playPauseBtn.classList.add("playing");
-            playPauseBtn.setAttribute("aria-label", "Pause video");
-            resetInactivityTimer();
-          } else {
-            fullscreenVideo.pause();
-            playPauseBtn.classList.remove("playing");
-            playPauseBtn.setAttribute("aria-label", "Play video");
-            clearTimeout(inactivityTimer);
-          }
-        };
-
-        playPauseBtn.addEventListener("click", togglePlayPause);
-        fullscreenVideo.addEventListener("click", (e) => {
-          e.stopPropagation();
-          if (e.target === fullscreenVideo) {
-            togglePlayPause();
-          }
-        });
-
-        fullscreenVideo.addEventListener("timeupdate", () => {
-          const progress =
-            (fullscreenVideo.currentTime / fullscreenVideo.duration) * 100;
-          gsap.to(progressBarFill, {
-            width: `${progress}%`,
-            duration: 0.1,
-            ease: "linear",
-          });
-        });
-
-        progressBarContainer.addEventListener("click", (e) => {
-          const rect = progressBarContainer.getBoundingClientRect();
-          const clickX = e.clientX - rect.left;
-          const width = rect.width;
-          const newTime = (clickX / width) * fullscreenVideo.duration;
-          fullscreenVideo.currentTime = newTime;
-        });
-
-        fullscreenVideo.addEventListener("ended", () => {
-          playPauseBtn.classList.remove("playing");
-          playPauseBtn.setAttribute("aria-label", "Play video");
-          fullscreenPlayer.classList.remove("inactive");
-          clearTimeout(inactivityTimer);
-        });
-
-        videoTrigger.addEventListener("mouseenter", (e) => {
-          gsap.set(playIcon, { x: e.clientX, y: e.clientY });
-          gsap.to(playIcon, { autoAlpha: 1, scale: 1, duration: 0.3 });
-        });
-
-        videoTrigger.addEventListener("mouseleave", () => {
-          gsap.to(playIcon, { autoAlpha: 0, scale: 0, duration: 0.3 });
-        });
-
-        videoTrigger.addEventListener("mousemove", (e) => {
-          gsap.to(playIcon, {
-            x: e.clientX,
-            y: e.clientY,
-            duration: 0.4,
-            ease: "power3.out",
-          });
-        });
-
-        videoTrigger.addEventListener("click", () => {
-          gsap.to(fullscreenPlayer, {
-            xPercent: 0,
-            visibility: "visible",
-            duration: 0.8,
-            ease: "expo.inOut",
-            onComplete: () => {
-              fullscreenVideo.play();
-              playPauseBtn.classList.add("playing");
-              playPauseBtn.setAttribute("aria-label", "Pause video");
-              resetInactivityTimer();
-            },
-          });
-        });
-
-        const closePlayer = () => {
-          gsap.to(fullscreenVideo, {
-            volume: 0,
-            duration: 0.5,
-            ease: "linear",
-            onComplete: () => {
-              fullscreenVideo.pause();
-              gsap.to(fullscreenPlayer, {
-                xPercent: -100,
-                duration: 0.8,
-                ease: "expo.inOut",
-                onComplete: () => {
-                  gsap.set(fullscreenPlayer, { visibility: "hidden" });
-                  fullscreenVideo.currentTime = 0;
-                  fullscreenVideo.volume = 1; // Reset for next time
-                  playPauseBtn.classList.remove("playing");
-                  playPauseBtn.setAttribute("aria-label", "Play video");
-                  gsap.set(progressBarFill, { width: "0%" });
-                },
-              });
-            },
-          });
-        };
-
-        closeBtn.addEventListener("click", closePlayer);
-        closeBtn.addEventListener("keydown", (e) => {
-          if (e.key === "Enter" || e.key === " ") {
-            e.preventDefault();
-            closePlayer();
-          }
-        });
-      });
-    </script>
-  </body>
 </html>
