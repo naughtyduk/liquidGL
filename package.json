@@ -1,0 +1,16 @@
+{
+    "name": "liquidgl",
+    "version": "1.0.0",
+    "description": "Real-time WebGL Liquid Glass Effect",
+    "type": "module",
+    "scripts": {
+        "dev": "vite",
+        "build": "vite build",
+        "preview": "vite preview"
+    },
+    "devDependencies": {
+        "vite": "^5.0.0"
+    },
+    "author": "NaughtyDuk©",
+    "license": "MIT"
+}
