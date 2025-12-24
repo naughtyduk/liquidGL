@@ -4,7 +4,9 @@
 
 **Release** - `now with real-time support`\*
 
-`liquidGL` turns any fixed-position element into a perfectly refracted, glossy "glass pane" rendered in WebGL.
+> [!IMPORTANT]
+> `liquidGL` is currently in beta and is not yet ready for production use. It is recommended to use it for prototyping and testing purposes only.
+> `liquidGL` turns any fixed-position element into a perfectly refracted, glossy "glass pane" rendered in WebGL.
 
 <a href="https://liquidgl.naughtyduk.com" target="_blank" rel="noopener noreferrer"><strong>TRY IT OUT</strong></a>
 
@@ -227,7 +229,7 @@ Below are some ready-made configurations you can copy-paste. Feel free to tweak 
 The `liquidGL` library is compatible with all WebGL enabled browsers on desktop, tablet and mobile devices.
 
 > [!NOTE]  
-> We are still testing non-Chromium browsers, and are aware of some performance issues in Safari specifically, these will be fixed, in the meantime please use with care.
+> Performance varies between browsers, specifically Safari can be unstable when the liquid element(s) are more than 50% of the viewport width or height. Practical use issues are rare, but make sure to test on your target devices thoroughly.
 
 | Browser        | Supported |
 | :------------- | :-------: |
