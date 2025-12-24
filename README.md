@@ -2,10 +2,10 @@
 
 <a href="https://liquidgl.naughtyduk.com"><img src="/assets/liquidGlass-promo.gif" alt="liquidGL" style="width: 100%"/></a>
 
-**Release** - `now with real-time support`\*
+**Prodution Release** - `now with real-time support`\*
 
 > [!NOTE]
-> `liquidGL` is free to use for both non-commercial and commercial purposes.
+> `liquidGL` is free to use for both non-commercial and commercial purposes. _BETA_ has now ended and the library is now ready for production use.
 
 `liquidGL` turns any fixed-position element into a perfectly refracted, glossy "glass pane" rendered in WebGL.
 
