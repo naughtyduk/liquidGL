@@ -4,9 +4,10 @@
 
 **Release** - `now with real-time support`\*
 
-> [!IMPORTANT]
-> `liquidGL` is currently in beta and is not yet ready for production use. It is recommended to use it for prototyping and testing purposes only.
-> `liquidGL` turns any fixed-position element into a perfectly refracted, glossy "glass pane" rendered in WebGL.
+> [!NOTE]
+> `liquidGL` is free to use for both non-commercial and commercial purposes.
+
+`liquidGL` turns any fixed-position element into a perfectly refracted, glossy "glass pane" rendered in WebGL.
 
 <a href="https://liquidgl.naughtyduk.com" target="_blank" rel="noopener noreferrer"><strong>TRY IT OUT</strong></a>
 
