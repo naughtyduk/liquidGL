@@ -2,10 +2,10 @@
 
 <a href="https://liquidgl.naughtyduk.com"><img src="/assets/liquidGlass-promo.gif" alt="liquidGL" style="width: 100%"/></a>
 
-**BETA Release** - `now with real-time support`\*
+**Prodution Release** - `now with real-time support`\*
 
-> [!IMPORTANT]
-> `liquidGL` is in **BETA** and has been built and tested in Google Chrome, we are still testing performance against other browsers. \*Note real-time support for content under the `target` currently works for videos and text animations but not CSS transforms i.e marquees etc.
+> [!NOTE]
+> `liquidGL` is free to use for both non-commercial and commercial purposes. _BETA_ has now ended and the library is now ready for production use.
 
 `liquidGL` turns any fixed-position element into a perfectly refracted, glossy "glass pane" rendered in WebGL.
 
@@ -230,14 +230,14 @@ Below are some ready-made configurations you can copy-paste. Feel free to tweak 
 The `liquidGL` library is compatible with all WebGL enabled browsers on desktop, tablet and mobile devices.
 
 > [!NOTE]  
-> We are still testing non-Chromium browsers, and are aware of some performance issues in Safari specifically, these will be fixed, in the meantime please use with care.
+> Performance varies between browsers, specifically Safari can be unstable when the liquid element(s) are more than 50% of the viewport width or height. Practical use issues are rare, but make sure to test on your target devices thoroughly.
 
 | Browser        | Supported |
 | :------------- | :-------: |
 | Google Chrome  |    Yes    |
-| Safari         |    TBC    |
-| Firefox        |    TBC    |
-| Microsoft Edge |    TBC    |
+| Safari         |    Yes    |
+| Firefox        |    Yes    |
+| Microsoft Edge |    Yes    |
 
 ---
 
