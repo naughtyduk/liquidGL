@@ -1,6 +1,6 @@
 {
   "name": "liquid-gl",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "Ultra-light glassmorphism for the web.",
   "type": "module",
   "main": "./liquidGL.js",
