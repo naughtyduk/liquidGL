@@ -1,0 +1,43 @@
+{
+  "name": "liquidgl",
+  "version": "1.0.0",
+  "description": "Ultra-light glassmorphism for the web.",
+  "type": "module",
+  "main": "./liquidGL.js",
+  "module": "./liquidGL.js",
+  "exports": {
+    ".": {
+      "import": "./liquidGL.js",
+      "default": "./liquidGL.js"
+    }
+  },
+  "files": [
+    "liquidGL.js",
+    "README.md",
+    "LICENSE"
+  ],
+  "dependencies": {
+    "html2canvas": "^1.4.1"
+  },
+  "peerDependencies": {
+    "three": ">=0.150.0"
+  },
+  "peerDependenciesMeta": {
+    "three": {
+      "optional": true
+    }
+  },
+  "keywords": [
+    "glassmorphism",
+    "liquid-glass",
+    "webgl",
+    "canvas",
+    "three"
+  ],
+  "author": "NaughtyDuk",
+  "license": "MIT",
+  "homepage": "https://liquidgl.naughtyduk.com",
+  "publishConfig": {
+    "access": "public"
+  }
+}
