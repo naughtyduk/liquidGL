@@ -2,7 +2,7 @@
 
 <a href="https://liquidgl.naughtyduk.com"><img src="/assets/liquidGlass-promo.gif" alt="liquidGL" style="width: 100%"/></a>
 
-**Prodution Release** - `now with real-time support`\*
+**v1.0.6**
 
 > [!IMPORTANT]
 > `liquidGL` is now available on npm: `npm install liquid-gl`. The `package/` directory contains the npm package source and is not required when using the CDN/browser script.
