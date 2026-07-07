@@ -1,6 +1,6 @@
 # liquidGL – Ultra-light glassmorphism for the web
 
-<a href="https://liquidgl.naughtyduk.com"><img src="https://liquidgl.naughtyduk.com/assets/liquidGlass-promo.gif" alt="liquidGL" style="width: 100%"/></a>
+<a href="https://liquidgl.naughtyduk.com"><img src="https://raw.githubusercontent.com/naughtyduk/liquidGL/main/assets/liquidGlass-promo.gif" alt="liquidGL" style="width: 100%"/></a>
 
 **Prodution Release** - `now with real-time support`\*
 
