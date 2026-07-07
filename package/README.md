@@ -1,15 +1,15 @@
 # liquidGL – Ultra-light glassmorphism for the web
 
-<a href="https://liquidgl.naughtyduk.com"><img src="https://raw.githubusercontent.com/naughtyduk/liquidGL/main/assets/liquidGL-npm-preview.gif" alt="liquidGL" style="width: 100%"/></a>
+<a href="https://liquidgl.naughtyduk.com"><img src="https://raw.githubusercontent.com/naughtyduk/liquidGL/main/assets/liquidGL-npm-preview.gif" alt="liquidGL" width="100%" height="auto"/></a>
 
-**Prodution Release** - `now with real-time support`\*
+**v1.0.5**
 
 > [!NOTE]
 > `liquidGL` is free to use for both non-commercial and commercial purposes. _BETA_ has now ended and the library is now ready for production use.
 
 `liquidGL` turns any fixed-position element into a perfectly refracted, glossy "glass pane" rendered in WebGL.
 
-<a href="https://liquidgl.naughtyduk.com" target="_blank" rel="noopener noreferrer"><img src="https://raw.githubusercontent.com/naughtyduk/liquidGL/main/assets/try-it-out-npm.png" alt="Try It Out" width="203"></a>
+<a href="https://liquidgl.naughtyduk.com" target="_blank" rel="noopener noreferrer"><img src="https://raw.githubusercontent.com/naughtyduk/liquidGL/main/assets/try-it-out-npm.png" alt="Try It Out" width="120"></a>
 
 <a href="https://liquidgl.naughtyduk.com/demos/demo-1.html" target="_blank" rel="noopener noreferrer"><strong>DEMO 1</strong></a> | <a href="https://liquidgl.naughtyduk.com/demos/demo-2.html" target="_blank" rel="noopener noreferrer"><strong>DEMO 2</strong></a> | <a href="https://liquidgl.naughtyduk.com/demos/demo-3.html" target="_blank" rel="noopener noreferrer"><strong>DEMO 3</strong></a> | <a href="https://liquidgl.naughtyduk.com/demos/demo-4.html" target="_blank" rel="noopener noreferrer"><strong>DEMO 4</strong></a> | <a href="https://liquidgl.naughtyduk.com/demos/demo-5.html" target="_blank" rel="noopener noreferrer"><strong>DEMO 5</strong></a>
 
