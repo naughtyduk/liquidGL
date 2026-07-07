@@ -1,6 +1,6 @@
 {
   "name": "liquid-gl",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Ultra-light glassmorphism for the web.",
   "type": "module",
   "main": "./liquidGL.js",
@@ -14,7 +14,9 @@
   "files": [
     "liquidGL.js",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "assets/liquidGL-npm-preview.gif",
+    "assets/try-it-out-npm.png"
   ],
   "dependencies": {
     "html2canvas": "^1.4.1"
