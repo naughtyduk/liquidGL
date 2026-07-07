@@ -5,13 +5,13 @@ Ultra-light glassmorphism for the web.
 ## Install
 
 ```sh
-npm install liquidgl
+npm install liquid-gl
 ```
 
 ## Usage
 
 ```js
-import liquidGL from "liquidgl";
+import liquidGL from "liquid-gl";
 
 const glass = liquidGL({
   target: ".liquidGL",

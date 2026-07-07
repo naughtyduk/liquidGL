@@ -5,7 +5,7 @@
 **Prodution Release** - `now with real-time support`\*
 
 > [!IMPORTANT]
-> `liquidGL` is now available on npm: `npm install liquidgl`. The `package/` directory contains the npm package source and is not required when using the CDN/browser script.
+> `liquidGL` is now available on npm: `npm install liquid-gl`. The `package/` directory contains the npm package source and is not required when using the CDN/browser script.
 
 > [!NOTE]
 > `liquidGL` is free to use for both non-commercial and commercial purposes. _BETA_ has now ended and the library is now ready for production use.
