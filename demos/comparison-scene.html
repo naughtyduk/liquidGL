@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>liquidGL drift comparison scene</title>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 100%; }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background: #111;
+        color: #fff;
+        overflow-x: hidden;
+      }
+
+      /* Each lens sits in a "gap" — a flow-level container with a target stripe
+         centered behind where the lens lands. The lens itself is block-level
+         (in flow), so on the upstream build html2canvas applies display:none in
+         its clone and collapses real layout space, drifting every gap below. */
+      .gap {
+        position: relative;
+        padding: 80px 0;
+        background: #1a1a1a;
+      }
+
+      .target {
+        position: absolute;
+        top: 50%;
+        left: 0;
+        right: 0;
+        height: 96px;
+        transform: translateY(-50%);
+        background: #fff;
+        color: #000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 56px;
+        font-weight: 900;
+        letter-spacing: 24px;
+        text-indent: 24px;
+        z-index: 0;
+      }
+
+      .liquidGL {
+        position: relative;
+        display: block;
+        width: 280px;
+        height: 280px;
+        margin: 0 auto;
+        border-radius: 36px;
+        z-index: 1;
+      }
+
+      .band {
+        position: relative;
+        width: 100%;
+        height: 600px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 220px;
+        font-weight: 900;
+        letter-spacing: -8px;
+        color: rgba(255, 255, 255, 0.92);
+        text-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+      }
+
+      .band-1 { background: linear-gradient(135deg, #ff3b6b, #ff8b3b); }
+      .band-2 { background: linear-gradient(135deg, #3bcfff, #3b6bff); }
+      .band-3 { background: linear-gradient(135deg, #ffd23b, #ff8b3b); }
+      .band-4 { background: linear-gradient(135deg, #8b3bff, #ff3b9a); }
+      .band-5 { background: linear-gradient(135deg, #3bff8b, #3bcfff); }
+      .band-6 { background: linear-gradient(135deg, #ff3b3b, #8b3bff); }
+
+      /* Stripes inside bands so drift is more obvious */
+      .band::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: repeating-linear-gradient(
+          0deg,
+          rgba(0, 0, 0, 0.0) 0px,
+          rgba(0, 0, 0, 0.0) 60px,
+          rgba(0, 0, 0, 0.18) 60px,
+          rgba(0, 0, 0, 0.18) 80px
+        );
+        pointer-events: none;
+      }
+
+      .band-label {
+        position: relative;
+        z-index: 1;
+      }
+
+      .ver-tag {
+        position: fixed;
+        top: 12px;
+        left: 12px;
+        z-index: 9999;
+        background: rgba(0, 0, 0, 0.7);
+        color: #fff;
+        padding: 6px 12px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+        font-family: -apple-system, monospace;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="ver-tag" id="verTag">loading…</div>
+
+    <section class="band band-1"><span class="band-label">1</span></section>
+    <div class="gap"><div class="target">TARGET A</div><div class="liquidGL"></div></div>
+    <section class="band band-2"><span class="band-label">2</span></section>
+    <div class="gap"><div class="target">TARGET B</div><div class="liquidGL"></div></div>
+    <section class="band band-3"><span class="band-label">3</span></section>
+    <div class="gap"><div class="target">TARGET C</div><div class="liquidGL"></div></div>
+    <section class="band band-4"><span class="band-label">4</span></section>
+    <div class="gap"><div class="target">TARGET D</div><div class="liquidGL"></div></div>
+    <section class="band band-5"><span class="band-label">5</span></section>
+    <div class="gap"><div class="target">TARGET E</div><div class="liquidGL"></div></div>
+    <section class="band band-6"><span class="band-label">6</span></section>
+    <div class="gap"><div class="target">TARGET F</div><div class="liquidGL"></div></div>
+
+    <script>
+      const params = new URLSearchParams(window.location.search);
+      const ver = params.get("ver") === "upstream" ? "upstream" : "local";
+
+      const tag = document.getElementById("verTag");
+      tag.textContent = ver === "upstream" ? "Upstream (buggy)" : "Patched fork";
+      tag.style.background = ver === "upstream"
+        ? "rgba(180, 30, 30, 0.85)"
+        : "rgba(30, 130, 60, 0.85)";
+
+      const html2canvasSrc = "/scripts/html2canvas.min.js";
+      const liquidGLSrc =
+        ver === "upstream"
+          ? "https://cdn.jsdelivr.net/gh/naughtyduk/liquidGL@latest/scripts/liquidGL.js"
+          : "/scripts/liquidGL.js";
+
+      function loadScript(src) {
+        return new Promise((resolve, reject) => {
+          const s = document.createElement("script");
+          s.src = src;
+          s.onload = resolve;
+          s.onerror = reject;
+          document.head.appendChild(s);
+        });
+      }
+
+      (async () => {
+        await loadScript(html2canvasSrc);
+        await loadScript(liquidGLSrc);
+
+        liquidGL({
+          target: ".liquidGL",
+          snapshot: "body",
+          resolution: 2,
+          refraction: 0.026,
+          bevelDepth: 0.119,
+          bevelWidth: 0.057,
+          frost: 0,
+          specular: true,
+          shadow: true,
+          reveal: "fade",
+        });
+      })();
+
+      // Report scroll to parent for sync
+      window.addEventListener("scroll", () => {
+        if (window.parent !== window) {
+          window.parent.postMessage(
+            {
+              type: "liquidgl-scene-scroll",
+              ver,
+              scrollY: window.scrollY,
+              scrollHeight: document.documentElement.scrollHeight,
+              innerHeight: window.innerHeight,
+            },
+            "*"
+          );
+        }
+      });
+
+      window.addEventListener("message", (e) => {
+        const d = e.data;
+        if (!d || d.type !== "liquidgl-parent-scroll") return;
+        if (d.ver === ver) return;
+        window.scrollTo(0, d.scrollY);
+      });
+    </script>
+  </body>
+</html>

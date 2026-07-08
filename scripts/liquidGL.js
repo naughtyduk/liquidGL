@@ -446,9 +446,16 @@
             .flatMap((lens) => [lens.el, lens._shadowEl])
             .filter(Boolean);
 
+          lensElements.forEach((el) => {
+            el.setAttribute("data-liquidgl-hide", "");
+            undos.push(() => {
+              el.removeAttribute("data-liquidgl-hide");
+            });
+          });
+
           const ignoreElementsFunc = (element) => {
             if (!element || !element.hasAttribute) return false;
-            if (element === this.canvas || lensElements.includes(element)) {
+            if (element === this.canvas) {
               return true;
             }
             const style = window.getComputedStyle(element);
@@ -472,6 +479,13 @@
             scrollY: 0,
             scale: scale,
             ignoreElements: ignoreElementsFunc,
+            onclone: (clonedDoc) => {
+              clonedDoc
+                .querySelectorAll("[data-liquidgl-hide]")
+                .forEach((el) => {
+                  el.style.visibility = "hidden";
+                });
+            },
           });
 
           this._uploadTexture(snapCanvas);
