@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -20,8 +20,9 @@
       }
 
       body {
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-          Helvetica, Arial, sans-serif;
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
+          Arial, sans-serif;
         background-color: var(--bg-color);
         color: var(--text-color);
         -webkit-font-smoothing: antialiased;
@@ -35,8 +36,9 @@
         top: 1rem;
         left: 1rem;
         z-index: 10000;
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-          Helvetica, Arial, sans-serif;
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
+          Arial, sans-serif;
       }
 
       .nav-container {
@@ -600,7 +602,7 @@
             class="form-logo"
           />
           <h2 class="login-title">liquidGL Bank</h2>
-          <form class="login-form" onsubmit="return false">
+          <form class="login-form" onsubmit="return false;">
             <div class="login-field">
               <label for="email" class="login-label">Email</label>
               <input
@@ -745,6 +747,10 @@
                 .onChange((v) => updateAll("refraction", v));
 
               glassFolder
+                .add(firstLens.options, "aberration", 0, 1, 0.01)
+                .onChange((v) => updateAll("aberration", v));
+
+              glassFolder
                 .add(firstLens.options, "bevelDepth", 0, 0.2, 0.001)
                 .onChange((v) => updateAll("bevelDepth", v));
 
@@ -775,6 +781,10 @@
               glassFolder
                 .add(firstLens.options, "tiltFactor", 0, 25, 0.1)
                 .onChange((v) => updateAll("tiltFactor", v));
+
+              glassFolder
+                .add(firstLens.options, "tiltEase", 0, 1000, 10)
+                .onChange((v) => updateAll("tiltEase", v));
 
               glassFolder
                 .add(firstLens.options, "reveal", ["none", "fade"])
@@ -812,7 +822,7 @@
                 e.preventDefault();
               }
             },
-            { passive: false }
+            { passive: false },
           );
 
           liquidGL.syncWith({ lenis: lenis });

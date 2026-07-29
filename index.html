@@ -57,14 +57,11 @@
 
       @media screen and (max-width: 768px) {
         .shape {
-          position: fixed;
-          top: 50%;
-          left: 50%;
-          transform: translate(-50%, -50%);
+          top: 17.5svh;
+          left: 1.25rem;
           width: calc(100% - 2.5rem);
           height: calc(65svh);
           border-radius: 4vw;
-          will-change: transform;
           pointer-events: auto;
           z-index: 9999;
         }
@@ -1099,6 +1096,9 @@
               .add(first.options, "refraction", 0, 0.1, 0.001)
               .onChange((v) => sync("refraction", v));
             folder
+              .add(first.options, "aberration", 0, 1, 0.01)
+              .onChange((v) => sync("aberration", v));
+            folder
               .add(first.options, "bevelDepth", 0, 0.2, 0.001)
               .onChange((v) => sync("bevelDepth", v));
             folder
@@ -1122,6 +1122,9 @@
             folder
               .add(first.options, "tiltFactor", 0, 25, 0.1)
               .onChange((v) => sync("tiltFactor", v));
+            folder
+              .add(first.options, "tiltEase", 0, 1000, 10)
+              .onChange((v) => sync("tiltEase", v));
             folder
               .add(first.options, "reveal", ["none", "fade"])
               .onChange((v) => sync("reveal", v));

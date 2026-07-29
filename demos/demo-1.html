@@ -410,7 +410,7 @@
                   />
                   <p class="small-text-link">Download</p>
                 </div>
-                <p class="version-text">v1.0.1</p>
+                <p class="version-text">v2.0.0</p>
               </div>
             </div>
           </div>
@@ -542,6 +542,10 @@
               .onChange((v) => updateAll("refraction", v));
 
             glassFolder
+              .add(firstLens.options, "aberration", 0, 1, 0.01)
+              .onChange((v) => updateAll("aberration", v));
+
+            glassFolder
               .add(firstLens.options, "bevelDepth", 0, 0.2, 0.001)
               .onChange((v) => updateAll("bevelDepth", v));
 
@@ -572,6 +576,10 @@
             glassFolder
               .add(firstLens.options, "tiltFactor", 0, 25, 0.1)
               .onChange((v) => updateAll("tiltFactor", v));
+
+            glassFolder
+              .add(firstLens.options, "tiltEase", 0, 1000, 10)
+              .onChange((v) => updateAll("tiltEase", v));
 
             glassFolder
               .add(firstLens.options, "reveal", ["none", "fade"])

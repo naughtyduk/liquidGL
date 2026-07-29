@@ -4,12 +4,15 @@
  *
  * Author: NaughtyDuk© – https://liquidgl.naughtyduk.com
  * Licence: MIT
+ * Version: v2.0.0
  */
 
 import html2canvas from "html2canvas";
 
 const liquidGL = (() => {
   "use strict";
+
+  const RECAPTURE_INTERVAL_MS = 250;
 
   /* --------------------------------------------------
    *  Utilities
@@ -138,7 +141,7 @@ const liquidGL = (() => {
         this._resizeCanvas();
         this.lenses.forEach((l) => l.updateMetrics());
         this.captureSnapshot();
-      }, 250);
+      }, RECAPTURE_INTERVAL_MS);
       window.addEventListener("resize", onResize, { passive: true });
 
       if ("ResizeObserver" in window) {
@@ -157,27 +160,30 @@ const liquidGL = (() => {
       document.head.appendChild(styleEl);
       this._dynamicStyleSheet = styleEl.sheet;
 
+      this._snapshotResolution = Math.max(
+        0.1,
+        Math.min(3.0, snapshotResolution),
+      );
+      this._pendingReveal = [];
+
       this._resizeCanvas();
       this.captureSnapshot();
-
-      this._pendingReveal = [];
 
       /* --------------------------------------------------
        *  Dynamic media (video) support
        * ------------------------------------------------*/
       this._videoNodes = Array.from(
-        this.snapshotTarget.querySelectorAll("video")
+        this.snapshotTarget.querySelectorAll("video"),
       );
       this._videoNodes = this._videoNodes.filter((v) => !this._isIgnored(v));
       this._tmpCanvas = document.createElement("canvas");
       this._tmpCtx = this._tmpCanvas.getContext("2d");
 
-      this.canvas.style.opacity = "0";
+      this._videoFrameState = new WeakMap();
 
-      this._snapshotResolution = Math.max(
-        0.1,
-        Math.min(3.0, snapshotResolution)
-      );
+      this._videoAlphaState = new WeakMap();
+
+      this.canvas.style.opacity = "0";
 
       this.useExternalTicker = false;
 
@@ -227,7 +233,7 @@ const liquidGL = (() => {
             y,
             gl.RGBA,
             gl.UNSIGNED_BYTE,
-            bmp
+            bmp,
           );
         };
       }
@@ -244,13 +250,18 @@ const liquidGL = (() => {
         }`;
 
       const fsSource = `
+        #ifdef GL_FRAGMENT_PRECISION_HIGH
+        precision highp float;
+        #else
         precision mediump float;
+        #endif
         varying vec2 v_uv;
         uniform sampler2D u_tex;
         uniform vec2  u_resolution;
         uniform vec2  u_textureResolution;
         uniform vec4  u_bounds;
         uniform float u_refraction;
+        uniform float u_aberration;
         uniform float u_bevelDepth;
         uniform float u_bevelWidth;
         uniform float u_frost;
@@ -265,6 +276,17 @@ const liquidGL = (() => {
 
         float udRoundBox( vec2 p, vec2 b, float r ) {
           return length(max(abs(p)-b+r,0.0))-r;
+        }
+
+        vec2 cornerNormal( vec2 p, vec2 b, float r, vec2 fallback ) {
+          vec2 q = abs(p) - b + r;
+          vec2 m = max(q, 0.0);
+          float l = length(m);
+          if (l <= 0.0) return fallback;
+          float w = smoothstep(0.0, max(r * 0.5, 1.0), min(m.x, m.y));
+          if (w <= 0.0) return fallback;
+          vec2 s = vec2(p.x < 0.0 ? -1.0 : 1.0, p.y < 0.0 ? -1.0 : 1.0);
+          return normalize(mix(fallback, s * (m / l), w));
         }
 
         float random(vec2 st) {
@@ -286,7 +308,13 @@ const liquidGL = (() => {
           float min_dimension = min(u_resolution.x, u_resolution.y);
           float offsetAmt = (edge * u_refraction + pow(edge, 10.0) * u_bevelDepth);
           float centreBlend = smoothstep(0.15, 0.45, length(p));
-          vec2 offset = normalize(p) * offsetAmt * centreBlend;
+          vec2 refractDir = cornerNormal(
+            (v_uv - 0.5) * u_resolution,
+            0.5 * u_resolution,
+            u_radius,
+            normalize(p)
+          );
+          vec2 offset = refractDir * offsetAmt * centreBlend;
 
           float tiltRefractionScale = 0.05;
           vec2 tiltOffset = vec2(tan(radians(u_tiltY)), -tan(radians(u_tiltX))) * tiltRefractionScale;
@@ -326,6 +354,12 @@ const liquidGL = (() => {
               refrCol /= 5.0;
           }
 
+          if (u_aberration > 0.0) {
+              vec2 chroma = offset * u_aberration;
+              refrCol.r = texture2D(u_tex, sampleUV - chroma).r;
+              refrCol.b = texture2D(u_tex, sampleUV + chroma).b;
+          }
+
           if (refrCol.a < 0.1) {
               refrCol = baseCol;
           }
@@ -339,7 +373,7 @@ const liquidGL = (() => {
           vec2 p_px = (v_uv - 0.5) * u_resolution;
           vec2 b_px = 0.5 * u_resolution;
           float dmask = udRoundBox(p_px, b_px, u_radius);
-          float inShape = 1.0 - step(0.0, dmask);
+          float inShape = clamp(0.5 - dmask, 0.0, 1.0);
 
           if (u_specular) {
             vec2 lp1 = vec2(sin(u_time*0.2), cos(u_time*0.3))*0.6 + 0.5;
@@ -370,22 +404,26 @@ const liquidGL = (() => {
       gl.bufferData(
         gl.ARRAY_BUFFER,
         new Float32Array([-1, -1, 1, -1, -1, 1, -1, 1, 1, -1, 1, 1]),
-        gl.STATIC_DRAW
+        gl.STATIC_DRAW,
       );
 
       const posLoc = gl.getAttribLocation(this.program, "a_position");
       gl.enableVertexAttribArray(posLoc);
       gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0);
 
+      this._posBuf = posBuf;
+      this._posLoc = posLoc;
+
       this.u = {
         tex: gl.getUniformLocation(this.program, "u_tex"),
         res: gl.getUniformLocation(this.program, "u_resolution"),
         textureResolution: gl.getUniformLocation(
           this.program,
-          "u_textureResolution"
+          "u_textureResolution",
         ),
         bounds: gl.getUniformLocation(this.program, "u_bounds"),
         refraction: gl.getUniformLocation(this.program, "u_refraction"),
+        aberration: gl.getUniformLocation(this.program, "u_aberration"),
         bevelDepth: gl.getUniformLocation(this.program, "u_bevelDepth"),
         bevelWidth: gl.getUniformLocation(this.program, "u_bevelWidth"),
         frost: gl.getUniformLocation(this.program, "u_frost"),
@@ -420,7 +458,7 @@ const liquidGL = (() => {
       const attemptCapture = async (
         attempt = 1,
         maxAttempts = 3,
-        delayMs = 500
+        delayMs = 500,
       ) => {
         try {
           const fullW = this.snapshotTarget.scrollWidth;
@@ -432,13 +470,24 @@ const liquidGL = (() => {
           let scale = Math.min(
             this._snapshotResolution,
             maxTex / fullW,
-            maxTex / fullH
+            maxTex / fullH,
           );
 
           if (isMobileSafari) {
             const over = (Math.max(fullW, fullH) * scale) / MAX_MOBILE_DIM;
             if (over > 1) scale = scale / over;
           }
+
+          const maxArea = isMobileSafari ? 4096 * 4096 : 16384 * 16384;
+          if (fullW * fullH * scale * scale > maxArea) {
+            scale = Math.sqrt(maxArea / (fullW * fullH));
+            console.warn(
+              `liquidGL: snapshot area capped, resolution reduced to ${scale.toFixed(
+                3,
+              )} for a ${fullW}x${fullH} document.`,
+            );
+          }
+
           this.scaleFactor = Math.max(0.1, scale);
 
           this.canvas.style.visibility = "hidden";
@@ -448,9 +497,16 @@ const liquidGL = (() => {
             .flatMap((lens) => [lens.el, lens._shadowEl])
             .filter(Boolean);
 
+          lensElements.forEach((el) => {
+            el.setAttribute("data-liquidgl-hide", "");
+            undos.push(() => {
+              el.removeAttribute("data-liquidgl-hide");
+            });
+          });
+
           const ignoreElementsFunc = (element) => {
             if (!element || !element.hasAttribute) return false;
-            if (element === this.canvas || lensElements.includes(element)) {
+            if (element === this.canvas) {
               return true;
             }
             const style = window.getComputedStyle(element);
@@ -474,15 +530,24 @@ const liquidGL = (() => {
             scrollY: 0,
             scale: scale,
             ignoreElements: ignoreElementsFunc,
+            onclone: (clonedDoc) => {
+              clonedDoc
+                .querySelectorAll("[data-liquidgl-hide]")
+                .forEach((el) => {
+                  el.style.visibility = "hidden";
+                });
+            },
           });
 
-          this._uploadTexture(snapCanvas);
+          if (!this._uploadTexture(snapCanvas)) {
+            throw new Error("liquidGL: snapshot could not be uploaded.");
+          }
           return true;
         } catch (e) {
           console.error("liquidGL snapshot failed on attempt " + attempt, e);
           if (attempt < maxAttempts) {
             console.log(
-              `Retrying snapshot capture (${attempt + 1}/${maxAttempts})...`
+              `Retrying snapshot capture (${attempt + 1}/${maxAttempts})...`,
             );
             await new Promise((resolve) => setTimeout(resolve, delayMs));
             return await attemptCapture(attempt + 1, maxAttempts, delayMs);
@@ -503,27 +568,39 @@ const liquidGL = (() => {
 
     /* ----------------------------- */
     _uploadTexture(srcCanvas) {
-      if (!srcCanvas) return;
+      if (!srcCanvas) {
+        console.error("liquidGL: snapshot produced no canvas.");
+        return false;
+      }
 
       if (!(srcCanvas instanceof HTMLCanvasElement)) {
         const tmp = document.createElement("canvas");
         tmp.width = srcCanvas.width || 0;
         tmp.height = srcCanvas.height || 0;
-        if (tmp.width === 0 || tmp.height === 0) return;
+        if (tmp.width === 0 || tmp.height === 0) {
+          console.error("liquidGL: snapshot canvas has zero dimensions.");
+          return false;
+        }
         try {
           const ctx = tmp.getContext("2d");
           ctx.drawImage(srcCanvas, 0, 0);
           srcCanvas = tmp;
         } catch (e) {
-          console.warn(
+          console.error(
             "liquidGL: Unable to convert OffscreenCanvas for upload",
-            e
+            e,
           );
-          return;
+          return false;
         }
       }
 
-      if (srcCanvas.width === 0 || srcCanvas.height === 0) return;
+      if (srcCanvas.width === 0 || srcCanvas.height === 0) {
+        console.error(
+          "liquidGL: snapshot canvas has zero dimensions, requested area " +
+            `${srcCanvas.width}x${srcCanvas.height} exceeds a browser limit.`,
+        );
+        return false;
+      }
       this.staticSnapshotCanvas = srcCanvas;
       const gl = this.gl;
       if (!this.texture) this.texture = gl.createTexture();
@@ -535,7 +612,7 @@ const liquidGL = (() => {
         gl.RGBA,
         gl.RGBA,
         gl.UNSIGNED_BYTE,
-        srcCanvas
+        srcCanvas,
       );
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
@@ -545,12 +622,18 @@ const liquidGL = (() => {
       this.textureWidth = srcCanvas.width;
       this.textureHeight = srcCanvas.height;
 
+      if (this._videoFrameState) this._videoFrameState = new WeakMap();
+
+      this._vFboTexture = null;
+
       this.render();
 
       if (this._pendingReveal.length) {
         this._pendingReveal.forEach((ln) => ln._reveal());
         this._pendingReveal.length = 0;
       }
+
+      return true;
     }
 
     /* ----------------------------- */
@@ -594,6 +677,8 @@ const liquidGL = (() => {
 
       this._updateDynamicNodes();
 
+      this._frameSnapRect = this.snapshotTarget.getBoundingClientRect();
+
       this.lenses.forEach((lens) => {
         lens.updateMetrics();
         if (lens._mirrorActive && lens._mirrorClipUpdater) {
@@ -624,15 +709,15 @@ const liquidGL = (() => {
           const x = Math.max(0, Math.round(left * dpr) - expand);
           const y = Math.max(
             0,
-            Math.round(this.canvas.height - (top + height) * dpr) - expand
+            Math.round(this.canvas.height - (top + height) * dpr) - expand,
           );
           const w = Math.min(
             this.canvas.width - x,
-            Math.round(width * dpr) + expand * 2
+            Math.round(width * dpr) + expand * 2,
           );
           const h = Math.min(
             this.canvas.height - y,
-            Math.round(height * dpr) + expand * 2
+            Math.round(height * dpr) + expand * 2,
           );
           if (w > 0 && h > 0) {
             gl.enable(gl.SCISSOR_TEST);
@@ -656,22 +741,27 @@ const liquidGL = (() => {
       let overscrollY = 0;
       let overscrollX = 0;
 
-      if (window.visualViewport) {
-        overscrollX = window.visualViewport.offsetLeft;
-        overscrollY = window.visualViewport.offsetTop;
+      const vv = window.visualViewport;
+      if (vv && Math.abs(vv.scale - 1) < 0.01) {
+        overscrollX = vv.offsetLeft;
+        overscrollY = vv.offsetTop;
       }
 
-      const x = (rect.left + overscrollX) * dpr;
-      const y =
-        this.canvas.height - (rect.top + overscrollY + rect.height) * dpr;
-      const w = rect.width * dpr;
-      const h = rect.height * dpr;
+      const leftPx = (rect.left + overscrollX) * dpr;
+      const topPx = (rect.top + overscrollY) * dpr;
+      const x = Math.round(leftPx);
+      const yTop = Math.round(topPx);
+      const w = Math.round(leftPx + rect.width * dpr) - x;
+      const h = Math.round(topPx + rect.height * dpr) - yTop;
+      const y = this.canvas.height - (yTop + h);
 
       gl.viewport(x, y, w, h);
       gl.uniform2f(this.u.res, w, h);
 
-      const docX = rect.left - this.snapshotTarget.getBoundingClientRect().left;
-      const docY = rect.top - this.snapshotTarget.getBoundingClientRect().top;
+      const snapRect =
+        this._frameSnapRect || this.snapshotTarget.getBoundingClientRect();
+      const docX = rect.left - snapRect.left;
+      const docY = rect.top - snapRect.top;
       const leftUV = (docX * this.scaleFactor) / this.textureWidth;
       const topUV = (docY * this.scaleFactor) / this.textureHeight;
       const wUV = (rect.width * this.scaleFactor) / this.textureWidth;
@@ -681,9 +771,10 @@ const liquidGL = (() => {
       gl.uniform2f(
         this.u.textureResolution,
         this.textureWidth,
-        this.textureHeight
+        this.textureHeight,
       );
       gl.uniform1f(this.u.refraction, lens.options.refraction);
+      gl.uniform1f(this.u.aberration, lens.options.aberration || 0);
       gl.uniform1f(this.u.bevelDepth, lens.options.bevelDepth);
       gl.uniform1f(this.u.bevelWidth, lens.options.bevelWidth);
       gl.uniform1f(this.u.frost, lens.options.frost);
@@ -696,8 +787,8 @@ const liquidGL = (() => {
         0.001,
         Math.min(
           3.0,
-          lens.options.magnify !== undefined ? lens.options.magnify : 1.0
-        )
+          lens.options.magnify !== undefined ? lens.options.magnify : 1.0,
+        ),
       );
       gl.uniform1f(this.u.magnify, mag);
 
@@ -720,6 +811,166 @@ const liquidGL = (() => {
       ctx.lineTo(0, radii.tl);
       ctx.arcTo(0, 0, radii.tl, 0, radii.tl);
       ctx.closePath();
+    }
+
+    _initVideoBlit() {
+      if (this._vBlitReady !== undefined) return this._vBlitReady;
+
+      const gl = this.gl;
+
+      const vs = `
+        attribute vec2 a_position;
+        varying vec2 v_uv;
+        void main(){
+          v_uv = (a_position + 1.0) * 0.5;
+          gl_Position = vec4(a_position, 0.0, 1.0);
+        }`;
+
+      const fs = `
+        precision mediump float;
+        varying vec2 v_uv;
+        uniform sampler2D u_src;
+        uniform vec4 u_srcRect;
+        void main(){
+          gl_FragColor = texture2D(u_src, u_srcRect.xy + v_uv * u_srcRect.zw);
+        }`;
+
+      const prog = createProgram(gl, vs, fs);
+      if (!prog) {
+        this._vBlitReady = false;
+        return false;
+      }
+
+      this._vProg = prog;
+      this._vPosLoc = gl.getAttribLocation(prog, "a_position");
+      this._vU = {
+        src: gl.getUniformLocation(prog, "u_src"),
+        srcRect: gl.getUniformLocation(prog, "u_srcRect"),
+      };
+
+      this._vTex = gl.createTexture();
+      gl.bindTexture(gl.TEXTURE_2D, this._vTex);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      gl.bindTexture(gl.TEXTURE_2D, this.texture);
+
+      this._vFbo = gl.createFramebuffer();
+      this._vFboTexture = null;
+
+      this._vBlitReady = true;
+      return true;
+    }
+
+    _videoIsOpaque(vid) {
+      if (!vid.videoWidth || !vid.videoHeight) return false;
+
+      const key = vid.videoWidth + "x" + vid.videoHeight;
+      const cached = this._videoAlphaState.get(vid);
+      if (cached && cached.key === key) return cached.opaque;
+
+      let opaque = false;
+      try {
+        const probe =
+          this._alphaProbeCanvas ||
+          (this._alphaProbeCanvas = document.createElement("canvas"));
+        const size = 32;
+        probe.width = size;
+        probe.height = size;
+        const ctx = probe.getContext("2d", { willReadFrequently: true });
+        ctx.clearRect(0, 0, size, size);
+        ctx.drawImage(vid, 0, 0, size, size);
+        const data = ctx.getImageData(0, 0, size, size).data;
+        opaque = true;
+        for (let i = 3; i < data.length; i += 4) {
+          if (data[i] !== 255) {
+            opaque = false;
+            break;
+          }
+        }
+      } catch (e) {
+        opaque = false;
+      }
+
+      this._videoAlphaState.set(vid, { key, opaque });
+      return opaque;
+    }
+
+    _blitVideoToTexture(vid, dstX, dstY, dstW, dstH, srcRect) {
+      const gl = this.gl;
+
+      gl.bindFramebuffer(gl.FRAMEBUFFER, this._vFbo);
+
+      if (this._vFboTexture !== this.texture) {
+        gl.framebufferTexture2D(
+          gl.FRAMEBUFFER,
+          gl.COLOR_ATTACHMENT0,
+          gl.TEXTURE_2D,
+          this.texture,
+          0,
+        );
+        if (
+          gl.checkFramebufferStatus(gl.FRAMEBUFFER) !== gl.FRAMEBUFFER_COMPLETE
+        ) {
+          gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+          this._vBlitReady = false;
+          return false;
+        }
+        this._vFboTexture = this.texture;
+      }
+
+      gl.activeTexture(gl.TEXTURE0);
+      gl.bindTexture(gl.TEXTURE_2D, this._vTex);
+      gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+
+      try {
+        gl.texImage2D(
+          gl.TEXTURE_2D,
+          0,
+          gl.RGBA,
+          gl.RGBA,
+          gl.UNSIGNED_BYTE,
+          vid,
+        );
+      } catch (e) {
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+        this._restoreLensProgramState();
+        return false;
+      }
+
+      gl.useProgram(this._vProg);
+      gl.bindBuffer(gl.ARRAY_BUFFER, this._posBuf);
+      gl.enableVertexAttribArray(this._vPosLoc);
+      gl.vertexAttribPointer(this._vPosLoc, 2, gl.FLOAT, false, 0, 0);
+
+      gl.uniform1i(this._vU.src, 0);
+      gl.uniform4f(
+        this._vU.srcRect,
+        srcRect.u,
+        srcRect.v,
+        srcRect.uw,
+        srcRect.vh,
+      );
+
+      gl.viewport(dstX, dstY, dstW, dstH);
+      gl.drawArrays(gl.TRIANGLES, 0, 6);
+
+      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+      this._restoreLensProgramState();
+
+      return true;
+    }
+
+    _restoreLensProgramState() {
+      const gl = this.gl;
+      gl.useProgram(this.program);
+      gl.bindBuffer(gl.ARRAY_BUFFER, this._posBuf);
+      gl.enableVertexAttribArray(this._posLoc);
+      gl.vertexAttribPointer(this._posLoc, 2, gl.FLOAT, false, 0, 0);
+      gl.activeTexture(gl.TEXTURE0);
+      gl.bindTexture(gl.TEXTURE_2D, this.texture);
+      gl.uniform1i(this.u.tex, 0);
     }
 
     /* ----------------------------- */
@@ -755,59 +1006,23 @@ const liquidGL = (() => {
 
         if (drawW <= 0 || drawH <= 0) return;
 
+        const geomKey =
+          Math.round(texX) + "," + Math.round(texY) + "," + drawW + "," + drawH;
+        const prevState = this._videoFrameState.get(vid);
         if (
-          this._tmpCanvas.width !== drawW ||
-          this._tmpCanvas.height !== drawH
+          prevState &&
+          prevState.time === vid.currentTime &&
+          prevState.geom === geomKey
         ) {
-          this._tmpCanvas.width = drawW;
-          this._tmpCanvas.height = drawH;
-        }
-
-        try {
-          this._tmpCtx.save();
-          this._tmpCtx.clearRect(0, 0, drawW, drawH);
-
-          const style = window.getComputedStyle(vid);
-          const scaledRadii = {
-            tl: parseFloat(style.borderTopLeftRadius) * this.scaleFactor,
-            tr: parseFloat(style.borderTopRightRadius) * this.scaleFactor,
-            br: parseFloat(style.borderBottomRightRadius) * this.scaleFactor,
-            bl: parseFloat(style.borderBottomLeftRadius) * this.scaleFactor,
-          };
-
-          if (Object.values(scaledRadii).some((r) => r > 0)) {
-            this._createRoundedRectPath(
-              this._tmpCtx,
-              drawW,
-              drawH,
-              scaledRadii
-            );
-            this._tmpCtx.clip();
-          }
-
-          this._tmpCtx.drawImage(
-            this.staticSnapshotCanvas,
-            texX,
-            texY,
-            texW,
-            texH,
-            0,
-            0,
-            drawW,
-            drawH
-          );
-
-          this._tmpCtx.drawImage(vid, 0, 0, drawW, drawH);
-          this._tmpCtx.restore();
-        } catch (e) {
-          console.warn("liquidGL: Error drawing video frame", e);
           return;
         }
+        this._videoFrameState.set(vid, {
+          time: vid.currentTime,
+          geom: geomKey,
+        });
 
         const drawX = Math.round(texX);
         const drawY = Math.round(texY);
-
-        if (drawW <= 0 || drawH <= 0) return;
 
         const maxW = this.textureWidth;
         const maxH = this.textureHeight;
@@ -838,6 +1053,70 @@ const liquidGL = (() => {
 
         if (updW <= 0 || updH <= 0) return;
 
+        const style = window.getComputedStyle(vid);
+        const scaledRadii = {
+          tl: parseFloat(style.borderTopLeftRadius) * this.scaleFactor,
+          tr: parseFloat(style.borderTopRightRadius) * this.scaleFactor,
+          br: parseFloat(style.borderBottomRightRadius) * this.scaleFactor,
+          bl: parseFloat(style.borderBottomLeftRadius) * this.scaleFactor,
+        };
+        const isRounded = Object.values(scaledRadii).some((r) => r > 0);
+
+        if (
+          !isRounded &&
+          this._initVideoBlit() &&
+          this._videoIsOpaque(vid) &&
+          this._blitVideoToTexture(vid, dstX, dstY, updW, updH, {
+            u: srcX / drawW,
+            v: srcY / drawH,
+            uw: updW / drawW,
+            vh: updH / drawH,
+          })
+        ) {
+          return;
+        }
+
+        if (
+          this._tmpCanvas.width !== drawW ||
+          this._tmpCanvas.height !== drawH
+        ) {
+          this._tmpCanvas.width = drawW;
+          this._tmpCanvas.height = drawH;
+        }
+
+        try {
+          this._tmpCtx.save();
+          this._tmpCtx.clearRect(0, 0, drawW, drawH);
+
+          if (isRounded) {
+            this._createRoundedRectPath(
+              this._tmpCtx,
+              drawW,
+              drawH,
+              scaledRadii,
+            );
+            this._tmpCtx.clip();
+          }
+
+          this._tmpCtx.drawImage(
+            this.staticSnapshotCanvas,
+            texX,
+            texY,
+            texW,
+            texH,
+            0,
+            0,
+            drawW,
+            drawH,
+          );
+
+          this._tmpCtx.drawImage(vid, 0, 0, drawW, drawH);
+          this._tmpCtx.restore();
+        } catch (e) {
+          console.warn("liquidGL: Error drawing video frame", e);
+          return;
+        }
+
         gl.bindTexture(gl.TEXTURE_2D, this.texture);
         gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
         gl.texSubImage2D(
@@ -847,7 +1126,7 @@ const liquidGL = (() => {
           dstY,
           gl.RGBA,
           gl.UNSIGNED_BYTE,
-          this._tmpCanvas
+          this._tmpCanvas,
         );
       });
     }
@@ -894,7 +1173,7 @@ const liquidGL = (() => {
               xInComposite,
               yInComposite,
               wInComposite,
-              hInComposite
+              hInComposite,
             );
           }
         });
@@ -949,7 +1228,7 @@ const liquidGL = (() => {
                 0,
                 0,
                 w,
-                h
+                h,
               );
               gl.bindTexture(gl.TEXTURE_2D, this.texture);
               gl.texSubImage2D(
@@ -959,7 +1238,7 @@ const liquidGL = (() => {
                 y,
                 gl.RGBA,
                 gl.UNSIGNED_BYTE,
-                eraseCanvas
+                eraseCanvas,
               );
             }
           }
@@ -1037,7 +1316,7 @@ const liquidGL = (() => {
             0,
             0,
             drawW,
-            drawH
+            drawH,
           );
           compositeVideos(this._compositeCtx, rect);
 
@@ -1046,7 +1325,7 @@ const liquidGL = (() => {
           this._compositeCtx.translate(drawW / 2, drawH / 2);
           if (style.transform !== "none") {
             this._compositeCtx.transform(
-              ...this._parseTransform(style.transform)
+              ...this._parseTransform(style.transform),
             );
           }
           this._compositeCtx.translate(-drawW / 2, -drawH / 2);
@@ -1062,7 +1341,7 @@ const liquidGL = (() => {
             dstY,
             gl.RGBA,
             gl.UNSIGNED_BYTE,
-            compositeCanvas
+            compositeCanvas,
           );
 
           if (this._workerEnabled && meta._heavyAnim) {
@@ -1080,7 +1359,7 @@ const liquidGL = (() => {
                 dstX,
                 dstY,
                 updW,
-                updH
+                updH,
               ),
               createImageBitmap(meta.lastCapture),
             ]).then(([snapBmp, dynBmp]) => {
@@ -1092,7 +1371,7 @@ const liquidGL = (() => {
                   snap: snapBmp,
                   dyn: dynBmp,
                 },
-                [snapBmp, dynBmp]
+                [snapBmp, dynBmp],
               );
             });
             meta.prevDrawRect = { x: dstX, y: dstY, w: updW, h: updH };
@@ -1217,7 +1496,7 @@ const liquidGL = (() => {
             try {
               this._dynamicStyleSheet.insertRule(
                 rule,
-                this._dynamicStyleSheet.cssRules.length
+                this._dynamicStyleSheet.cssRules.length,
               );
               m.hoverClassName = className;
               el.classList.add(className);
@@ -1227,7 +1506,7 @@ const liquidGL = (() => {
           }
           setDirty();
         },
-        { passive: true }
+        { passive: true },
       );
 
       el.addEventListener("mouseleave", handleLeave, { passive: true });
@@ -1247,7 +1526,7 @@ const liquidGL = (() => {
           if (
             meta._heavyAnim &&
             !meta._capturing &&
-            ts - meta._lastCaptureTs > 33
+            ts - meta._lastCaptureTs > RECAPTURE_INTERVAL_MS
           ) {
             meta._lastCaptureTs = ts;
             meta.needsRecapture = true;
@@ -1293,7 +1572,7 @@ const liquidGL = (() => {
           if (m) m._heavyAnim = true;
           startRealtime();
         },
-        { passive: true }
+        { passive: true },
       );
 
       el.addEventListener(
@@ -1305,7 +1584,7 @@ const liquidGL = (() => {
             if (!m._animating) startRealtime();
           }
         },
-        { passive: true }
+        { passive: true },
       );
 
       const stopRealtime = () => {
@@ -1454,9 +1733,12 @@ const liquidGL = (() => {
       let overscrollY = 0;
       let overscrollX = 0;
 
-      if (window.visualViewport) {
-        overscrollX = -window.visualViewport.offsetLeft;
-        overscrollY = -window.visualViewport.offsetTop;
+      const vv = window.visualViewport;
+      if (vv) {
+        if (Math.abs(vv.scale - 1) < 0.01) {
+          overscrollX = -vv.offsetLeft;
+          overscrollY = -vv.offsetTop;
+        }
       } else {
         const bodyStyle = window.getComputedStyle(document.body);
         const htmlStyle = window.getComputedStyle(document.documentElement);
@@ -1641,23 +1923,47 @@ const liquidGL = (() => {
       const getMaxTilt = () =>
         Number.isFinite(this.options.tiltFactor) ? this.options.tiltFactor : 5;
 
+      const getTiltEase = () =>
+        Number.isFinite(this.options.tiltEase)
+          ? Math.max(0, this.options.tiltEase)
+          : 400;
+
+      const TILT_TRACK_MS = 120;
+
+      const setTiltTransition = (ms) => {
+        const value = `transform ${ms}ms cubic-bezier(0.33,1,0.68,1)`;
+        this.el.style.transition = value;
+        if (this._mirror) this._mirror.style.transition = value;
+        if (this._shadowEl) this._shadowEl.style.transition = value;
+      };
+
+      this._clearTiltEnterTimer = () => {
+        if (this._tiltEnterTimer) {
+          clearTimeout(this._tiltEnterTimer);
+          this._tiltEnterTimer = null;
+        }
+      };
+
       this._applyTilt = (clientX, clientY) => {
         if (!this._tiltInteracting) {
           this._tiltInteracting = true;
-          this.el.style.transition =
-            "transform 0.12s cubic-bezier(0.33,1,0.68,1)";
           this._createMirrorCanvas();
-          if (this._mirror) {
-            this._mirror.style.transition =
-              "transform 0.12s cubic-bezier(0.33,1,0.68,1)";
-          }
-          if (this._shadowEl) {
-            this._shadowEl.style.transition =
-              "transform 0.12s cubic-bezier(0.33,1,0.68,1)";
+
+          const enterMs = getTiltEase();
+          setTiltTransition(enterMs);
+
+          this._tiltEntering = enterMs > 0;
+          this._clearTiltEnterTimer();
+          if (this._tiltEntering) {
+            this._tiltEnterTimer = setTimeout(() => {
+              this._tiltEntering = false;
+              this._tiltEnterTimer = null;
+              setTiltTransition(TILT_TRACK_MS);
+            }, enterMs);
           }
         }
 
-        const r = this._baseRect || this.el.getBoundingClientRect();
+        const r = this._baseRect || this._measureBaseRect();
         const cx = r.left + r.width / 2;
         const cy = r.top + r.height / 2;
 
@@ -1686,8 +1992,13 @@ const liquidGL = (() => {
 
         const transformStr = `${overscrollCompensation}${baseTransform}perspective(800px) rotateX(${rotX}deg) rotateY(${rotY}deg)`;
 
-        this.tiltX = rotX;
-        this.tiltY = rotY;
+        if (this._tiltEntering) {
+          this._easeTiltTo(rotX, rotY, getTiltEase());
+        } else {
+          this._cancelTiltEase();
+          this.tiltX = rotX;
+          this.tiltY = rotY;
+        }
 
         this.el.style.transformOrigin = `50% 50%`;
         this.el.style.transform = transformStr;
@@ -1705,8 +2016,60 @@ const liquidGL = (() => {
         this.renderer.render();
       };
 
+      this._cancelTiltEase = () => {
+        if (this._tiltEaseRaf) {
+          cancelAnimationFrame(this._tiltEaseRaf);
+          this._tiltEaseRaf = null;
+        }
+      };
+
+      this._easeTiltTo = (toX, toY, duration) => {
+        this._cancelTiltEase();
+
+        const fromX = this.tiltX;
+        const fromY = this.tiltY;
+        if (fromX === toX && fromY === toY) return;
+
+        if (!duration || duration <= 0) {
+          this.tiltX = toX;
+          this.tiltY = toY;
+          this.renderer.render();
+          return;
+        }
+
+        const start =
+          typeof performance !== "undefined" ? performance.now() : Date.now();
+
+        const step = (now) => {
+          const elapsed =
+            (typeof now === "number"
+              ? now
+              : typeof performance !== "undefined"
+                ? performance.now()
+                : Date.now()) - start;
+          const t = Math.min(1, elapsed / duration);
+          const eased = 1 - Math.pow(1 - t, 3);
+
+          this.tiltX = fromX + (toX - fromX) * eased;
+          this.tiltY = fromY + (toY - fromY) * eased;
+          this.renderer.render();
+
+          if (t < 1) {
+            this._tiltEaseRaf = requestAnimationFrame(step);
+          } else {
+            this._tiltEaseRaf = null;
+            this.tiltX = toX;
+            this.tiltY = toY;
+            this.renderer.render();
+          }
+        };
+
+        this._tiltEaseRaf = requestAnimationFrame(step);
+      };
+
       this._smoothReset = () => {
-        this.el.style.transition = "transform 0.4s cubic-bezier(0.33,1,0.68,1)";
+        const restMs = getTiltEase();
+        setTiltTransition(restMs);
         this.el.style.transformOrigin = `50% 50%`;
         const baseRest =
           this._savedTransform && this._savedTransform !== "none"
@@ -1726,13 +2089,11 @@ const liquidGL = (() => {
 
         this.el.style.transform = `${overscrollCompensation}${baseRest}perspective(800px) rotateX(0deg) rotateY(0deg)`;
 
-        this.tiltX = 0;
-        this.tiltY = 0;
-        this.renderer.render();
+        this._tiltEntering = false;
+        this._clearTiltEnterTimer();
+        this._easeTiltTo(0, 0, getTiltEase());
 
         if (this._mirror) {
-          this._mirror.style.transition =
-            "transform 0.4s cubic-bezier(0.33, 1, 0.68, 1)";
           this._mirror.style.transformOrigin = this._pivotOrigin || "50% 50%";
           this._mirror.style.transform = `${baseRest}perspective(800px) rotateX(0deg) rotateY(0deg)`;
           const clean = () => {
@@ -1742,12 +2103,10 @@ const liquidGL = (() => {
           this._mirror.addEventListener("transitionend", clean, {
             once: true,
           });
-          this._resetCleanupTimer = setTimeout(clean, 350);
+          this._resetCleanupTimer = setTimeout(clean, restMs + 50);
         }
 
         if (this._shadowEl) {
-          this._shadowEl.style.transition =
-            "transform 0.4s cubic-bezier(0.33,1,0.68,1)";
           this._shadowEl.style.transformOrigin = `50% 50%`;
           this._shadowEl.style.transform = `${baseRest}perspective(800px) rotateX(0deg) rotateY(0deg)`;
         }
@@ -1766,7 +2125,7 @@ const liquidGL = (() => {
         this._tiltInteracting = false;
         this._createMirrorCanvas();
 
-        const r = this._baseRect || this.el.getBoundingClientRect();
+        const r = this._baseRect || this._measureBaseRect();
         const cx = r.left + r.width / 2;
         const cy = r.top + r.height / 2;
 
@@ -1853,6 +2212,11 @@ const liquidGL = (() => {
 
     _unbindTiltHandlers() {
       if (!this._tiltHandlersBound) return;
+      if (this._cancelTiltEase) this._cancelTiltEase();
+      if (this._clearTiltEnterTimer) this._clearTiltEnterTimer();
+      this._tiltEntering = false;
+      this.tiltX = 0;
+      this.tiltY = 0;
       this.el.removeEventListener("mouseenter", this._onMouseEnter.bind(this));
       this.el.removeEventListener("mousemove", this._onMouseMove.bind(this));
       document.removeEventListener("mousemove", this._boundCheckLeave);
@@ -1872,8 +2236,26 @@ const liquidGL = (() => {
       this.renderer.render();
     }
 
+    _measureBaseRect() {
+      const tilted =
+        this.tiltX !== 0 || this.tiltY !== 0 || !!this._tiltEaseRaf;
+      if (!tilted) return this.el.getBoundingClientRect();
+
+      const prevTransition = this.el.style.transition;
+      const prevTransform = this.el.style.transform;
+
+      this.el.style.transition = "none";
+      this.el.style.transform = this._savedTransform || "";
+      const rect = this.el.getBoundingClientRect();
+
+      this.el.style.transform = prevTransform;
+      this.el.style.transition = prevTransition;
+
+      return rect;
+    }
+
     _createMirrorCanvas() {
-      this._baseRect = this.el.getBoundingClientRect();
+      this._baseRect = this._measureBaseRect();
       if (this._mirror) return;
       this._mirror = document.createElement("canvas");
       Object.assign(this._mirror.style, {
@@ -1891,9 +2273,9 @@ const liquidGL = (() => {
 
       const updateClip = () => {
         if (this._mirrorActive) {
-          this._baseRect = this._baseRect || this.el.getBoundingClientRect();
+          this._baseRect = this._baseRect || this._measureBaseRect();
         }
-        const r = this._baseRect || this.el.getBoundingClientRect();
+        const r = this._baseRect || this._measureBaseRect();
         const radius = `${this.radiusCss}px`;
         this._mirror.style.clipPath = `inset(${r.top}px ${
           innerWidth - r.right
@@ -1934,6 +2316,7 @@ const liquidGL = (() => {
       snapshot: "body",
       resolution: 2.0,
       refraction: 0.01,
+      aberration: 0,
       bevelDepth: 0.08,
       bevelWidth: 0.15,
       frost: 0,
@@ -1942,6 +2325,7 @@ const liquidGL = (() => {
       reveal: "fade",
       tilt: false,
       tiltFactor: 5,
+      tiltEase: 400,
       magnify: 1,
       on: {},
     };
@@ -1960,7 +2344,7 @@ const liquidGL = (() => {
 
     if (noWebGL) {
       console.warn(
-        "liquidGL: WebGL not available – falling back to CSS backdrop-filter."
+        "liquidGL: WebGL not available – falling back to CSS backdrop-filter.",
       );
       const fallbackNodes = document.querySelectorAll(options.target);
       fallbackNodes.forEach((node) => {
@@ -1984,13 +2368,13 @@ const liquidGL = (() => {
     const nodeList = document.querySelectorAll(options.target);
     if (!nodeList || nodeList.length === 0) {
       console.warn(
-        `liquidGL: Target element(s) '${options.target}' not found.`
+        `liquidGL: Target element(s) '${options.target}' not found.`,
       );
       return;
     }
 
     const instances = Array.from(nodeList).map((el) =>
-      renderer.addLens(el, options)
+      renderer.addLens(el, options),
     );
 
     if (!renderer._rafId && !renderer.useExternalTicker) {
@@ -2023,15 +2407,15 @@ const liquidGL = (() => {
     const renderer = window.__liquidGLRenderer__;
     if (!renderer) {
       console.warn(
-        "liquidGL: Please initialize liquidGL *before* calling syncWith()."
+        "liquidGL: Please initialize liquidGL *before* calling syncWith().",
       );
       return;
     }
 
-    const G = window.gsap;
+    const G = config.gsap === false ? null : config.gsap || window.gsap;
     const L = window.Lenis;
     const LS = window.LocomotiveScroll;
-    const ST = G ? G.ScrollTrigger : null;
+    const ST = G ? config.ScrollTrigger || G.ScrollTrigger : null;
 
     let lenis = config.lenis;
     let loco = config.locomotiveScroll;
@@ -2103,7 +2487,6 @@ const liquidGL = (() => {
 
     return { lenis, locomotiveScroll: loco };
   };
-
   return liquidGL;
 })();
 
