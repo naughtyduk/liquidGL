@@ -300,16 +300,6 @@
         font-weight: 500;
       }
 
-      .ripples {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        filter: invert(1);
-        opacity: 0.3;
-      }
-
       .lil-gui {
         --focus-color: #f5f5f5;
         --number-color: #f5f5f5;
@@ -344,7 +334,6 @@
         </div>
       </div>
     </nav>
-    <div class="ripples"></div>
     <div class="main-content">
       <div class="image-container">
         <img
@@ -439,16 +428,6 @@
       integrity="sha384-li4UtcFCH6QeUqR4JyV58/VgTprMuz9aauj+oWtew7V4Y7ZVjnvz5px9Y3UCG0Ea"
       crossorigin="anonymous"
     ></script>
-    <script
-      src="https://code.jquery.com/jquery-3.7.1.min.js"
-      integrity="sha384-1H217gwSVyLSIfaLxHbE7dRb3v4mYCKbpQvzx0cegeju1MVsGrX5xXxAvs/HgeFs"
-      crossorigin="anonymous"
-    ></script>
-    <script
-      src="https://cdn.jsdelivr.net/npm/jquery.ripples@0.6.3/dist/jquery.ripples.min.js"
-      integrity="sha384-C38Bo9dzWIuuaYEd6arYPKe6K8fk4+SvHcmLhtHPHAPILd+/5Oz5IB2Es8lwdB8O"
-      crossorigin="anonymous"
-    ></script>
 
     <!-- Scripts -->
     <script src="/scripts/html2canvas.min.js"></script>
@@ -489,17 +468,6 @@
         }
 
         initializeliquidGL(); // Call immediately on DOM ready
-
-        // Ripples
-        $(".ripples").each(function () {
-          const $this = $(this);
-          $this.ripples({
-            resolution: 512,
-            dropRadius: 20,
-            perturbance: 0.04,
-            interactive: true,
-          });
-        });
 
         // A function to initialize the glass effect and its controls
         function initializeliquidGL() {
