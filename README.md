@@ -8,7 +8,7 @@
 > `liquidGL` is now available on npm: `npm install liquid-gl`. The `package/` directory contains the npm package source and is not required when using the CDN/browser script.
 
 > [!WARNING]
-> **v2.0.2 changed snapshot capture.** `liquidGL` now snapshots the page with its own built-in rasteriser, so `html2canvas` is no longer a dependency. Remove the `html2canvas` script tag from your page; no other changes are required.
+> **v2.0.1 changed snapshot capture.** `liquidGL` now snapshots the page with its own built-in rasteriser, so `html2canvas` is no longer a dependency. Remove the `html2canvas` script tag from your page; no other changes are required.
 >
 > | Rasteriser    | Median  | Min     | Max      | Worst single stall |
 > | :------------ | :------ | :------ | :------- | :----------------- |

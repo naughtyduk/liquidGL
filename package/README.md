@@ -8,7 +8,7 @@
 > `liquidGL` is free to use for both non-commercial and commercial purposes. _BETA_ has now ended and the library is now ready for production use.
 
 > [!WARNING]
-> **v2.0.2 changed snapshot capture.** `liquidGL` now snapshots the page with its own built-in rasteriser, so `html2canvas` is no longer a dependency. Nothing needs to change in your code.
+> **v2.0.1 changed snapshot capture.** `liquidGL` now snapshots the page with its own built-in rasteriser, so `html2canvas` is no longer a dependency. Nothing needs to change in your code.
 >
 > | Rasteriser    | Median  | Min     | Max      | Worst single stall |
 > | :------------ | :------ | :------ | :------- | :----------------- |
