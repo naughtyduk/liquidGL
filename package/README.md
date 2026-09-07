@@ -2,13 +2,13 @@
 
 <a href="https://liquidgl.naughtyduk.com"><img src="https://raw.githubusercontent.com/naughtyduk/liquidGL/main/assets/liquidGL-npm-preview.gif" alt="liquidGL" width="100%" height="auto"/></a>
 
-**v2.0.1**
+**v2.0.2**
 
 > [!NOTE]
 > `liquidGL` is free to use for both non-commercial and commercial purposes. _BETA_ has now ended and the library is now ready for production use.
 
 > [!WARNING]
-> **v2.0.1 changes snapshot capture.** `liquidGL` now snapshots the page with its own built-in rasteriser, so `html2canvas` is no longer a dependency. Nothing needs to change in your code.
+> **v2.0.2 changed snapshot capture.** `liquidGL` now snapshots the page with its own built-in rasteriser, so `html2canvas` is no longer a dependency. Nothing needs to change in your code.
 >
 > | Rasteriser    | Median  | Min     | Max      | Worst single stall |
 > | :------------ | :------ | :------ | :------- | :----------------- |
@@ -19,7 +19,7 @@
 >
 > **v2.0.0 changed tilt behaviour.** The tilt interaction now eases symmetrically over the new `tiltEase` option (default `400`ms) in both directions, replacing the previous hard-coded `0.12s` ease-in and `0.4s` ease-out. If you depended on the old timing, set `tiltEase` explicitly. All other defaults are unchanged and existing configurations render identically.
 
-`liquidGL` turns any fixed-position element into a perfectly refracted, glossy "glass pane" rendered in WebGL.
+`liquidGL` turns any fixed or sticky-positioned element into a perfectly refracted, glossy "glass pane" rendered in WebGL.
 
 <a href="https://liquidgl.naughtyduk.com" target="_blank" rel="noopener noreferrer"><img src="https://raw.githubusercontent.com/naughtyduk/liquidGL/main/assets/try-it-out-npm.png" alt="Try It Out" width="120"></a>
 
@@ -27,27 +27,31 @@
 
 ---
 
-## What's new in v2.0.1
+## What's New
 
-**Changes**
+**Features**
 
-- **Built-in DOM snapshotter** — the `html2canvas` dependency has been replaced with an integrated rasteriser. The package now installs with no runtime dependencies.
+- **Sticky positioning support** — `position: sticky` elements can now be glassified. Sticky lenses are measured every animation frame, so the glass pane tracks the element through its flowing and stuck phases, then releases with it at the end of its containing block — inside nested scroll containers as well as the main document.
 
----
-
-## What's new in v2.0.0
-
-**New features**
+- **Built-in DOM snapshotter** — the `html2canvas` dependency has been replaced with an integrated rasteriser. Capture no longer depends on a third-party library.
 
 - **Chromatic aberration** — the new `aberration` option disperses the red and blue channels either side of the refraction vector, blue displaced further than red, matching the way real glass disperses shorter wavelengths more strongly. Dispersion scales with the refraction offset, so it concentrates at the bevelled edge and vanishes at the flat centre. Defaults to `0` (off).
+
 - **Configurable tilt easing** — the new `tiltEase` option sets the settle duration, in milliseconds, of the tilt on both hover-in and hover-out.
+
+---
 
 **Bug fixes**
 
 - **Refraction drift caused by ignored elements** — elements marked `data-liquid-ignore` were removed from the snapshot entirely, collapsing them out of layout and shifting every element below them. Ignored elements now retain their layout box, so the refraction stays aligned with the live page.
+
 - **Lens and content diverging during tilt** — the pane could separate from its content mid-tilt because the element was being measured while transformed. Metrics are now taken from the untilted box.
+
 - **Tilt snapping on hover** — the refraction jumped straight to its new angle on hover-in while easing on hover-out. Both directions now share a single curve and duration, and cursor movement during entry retargets the in-flight ease rather than snapping.
+
 - **Displacement while pinch-zoomed** — the pane drifted diagonally away from its element when the page was pinch-zoomed, because `visualViewport` offsets were applied twice. Offset compensation is now correctly gated.
+
+---
 
 **Performance**
 

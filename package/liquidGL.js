@@ -4,7 +4,7 @@
  *
  * Author: NaughtyDuk© – https://liquidgl.naughtyduk.com
  * Licence: MIT
- * Version: v2.0.1
+ * Version: v2.0.2
  */
 
 const liquidGL = (() => {
@@ -2384,6 +2384,10 @@ const liquidGL = (() => {
       const gl = this.gl;
       if (!this.texture) return;
 
+      this.lenses.forEach((ln) => {
+        if (ln._isSticky && !ln._mirrorActive) ln.updateMetrics();
+      });
+
       if (this._isScrolling) {
         this._scrollUpdateCounter++;
       }
@@ -3401,6 +3405,8 @@ const liquidGL = (() => {
           ? "relative"
           : this.el.style.position;
 
+      this._isSticky = /sticky/.test(window.getComputedStyle(this.el).position);
+
       const bgCol = window.getComputedStyle(this.el).backgroundColor;
       const rgbaMatch = bgCol.match(/rgba?\(([^)]+)\)/);
       this._bgColorComponents = null;
@@ -3437,6 +3443,17 @@ const liquidGL = (() => {
         this._mirrorActive && this._baseRect
           ? this._baseRect
           : this.el.getBoundingClientRect();
+
+      const prev = this.rectPx;
+      if (
+        prev &&
+        rect.left === prev.left &&
+        rect.top === prev.top &&
+        rect.width === prev.width &&
+        rect.height === prev.height
+      ) {
+        return;
+      }
 
       this.rectPx = {
         left: rect.left,
