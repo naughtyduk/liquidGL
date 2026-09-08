@@ -1,11 +1,11 @@
-# liquidGL – Ultra-light glassmorphism for the web
+# liquidGL – Liquid Glass - Powered by WebGL
 
 <a href="https://liquidgl.naughtyduk.com"><img src="/assets/liquidGlass-promo.gif" alt="liquidGL" style="width: 100%"/></a>
 
-**v2.0.2**
+### v2.0.3
 
 > [!NOTE]
-> `liquidGL` is now available on npm: `npm install liquid-gl`. The `package/` directory contains the npm package source and is not required when using the CDN/browser script.
+> `liquidGL` is now available on npm: `npm install liquid-gl`. The `package/` directory contains the [npm package](https://www.npmjs.com/package/liquid-gl) source code, and is not required when using the CDN/browser script.
 
 > [!WARNING]
 > **v2.0.1 changed snapshot capture.** `liquidGL` now snapshots the page with its own built-in rasteriser, so `html2canvas` is no longer a dependency. Remove the `html2canvas` script tag from your page; no other changes are required.

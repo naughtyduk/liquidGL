@@ -1,5 +1,5 @@
 /*
- * liquidGL – Ultra-light glassmorphism for the web
+ * liquidGL – Liquid Glass - Powered by WebGL
  * -----------------------------------------------------------------------------
  *
  * Author: NaughtyDuk© – https://liquidgl.naughtyduk.com

@@ -1,7 +1,7 @@
 {
   "name": "liquid-gl",
   "version": "2.0.2",
-  "description": "Ultra-light glassmorphism for the web.",
+  "description": "Liquid Glass - Powered by WebGL.",
   "type": "module",
   "main": "./liquidGL.js",
   "module": "./liquidGL.js",

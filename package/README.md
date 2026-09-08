@@ -1,11 +1,11 @@
-# liquidGL – Ultra-light glassmorphism for the web
+# liquidGL – Liquid Glass - Powered by WebGL
 
 <a href="https://liquidgl.naughtyduk.com"><img src="https://raw.githubusercontent.com/naughtyduk/liquidGL/main/assets/liquidGL-npm-preview.gif" alt="liquidGL" width="100%" height="auto"/></a>
 
-**v2.0.2**
+### v2.0.3
 
 > [!NOTE]
-> `liquidGL` is free to use for both non-commercial and commercial purposes. _BETA_ has now ended and the library is now ready for production use.
+> `liquidGL` is free to use for both non-commercial and commercial purposes.
 
 > [!WARNING]
 > **v2.0.1 changed snapshot capture.** `liquidGL` now snapshots the page with its own built-in rasteriser, so `html2canvas` is no longer a dependency. Nothing needs to change in your code.
@@ -56,6 +56,7 @@
 **Performance**
 
 - Video frames are no longer re-composited or re-uploaded when neither the frame time nor the destination region has changed. Paused, ended and unmoved videos now cost nothing per frame.
+
 - The snapshot bounding box is read once per frame and shared across every lens, instead of twice per lens per frame, removing repeated forced layout from the render loop.
 
 ---
