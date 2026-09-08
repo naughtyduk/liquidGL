@@ -340,15 +340,6 @@
         letter-spacing: 0.02rem;
         font-weight: 500;
       }
-
-      .lil-gui {
-        --focus-color: #f5f5f5;
-        --number-color: #f5f5f5;
-      }
-
-      .lil-gui.autoPlace {
-        z-index: 10000;
-      }
     </style>
   </head>
   <body>
@@ -440,7 +431,7 @@
                   />
                   <p class="small-text-link">Download</p>
                 </div>
-                <p class="version-text">v2.0.2</p>
+                <p class="version-text">v2.1.0</p>
               </div>
             </div>
           </div>
@@ -457,11 +448,6 @@
     <script
       src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/ScrollTrigger.min.js"
       integrity="sha384-P8VzCVnT9NBUkMrpcIZrJbA7EBjJvh/fJS6PmP+4nLIM284DtsImIv8D0fFjIkeh"
-      crossorigin="anonymous"
-    ></script>
-    <script
-      src="https://cdn.jsdelivr.net/npm/lil-gui@0.20/dist/lil-gui.umd.min.js"
-      integrity="sha384-Acb30yI/vfD0avseYDdQ569JquIZO1ofi2uyltUYzH7CvCSm6bX4L3VGqbj7fTBS"
       crossorigin="anonymous"
     ></script>
     <script
@@ -509,9 +495,8 @@
 
         initializeliquidGL(); // Call immediately on DOM ready
 
-        // A function to initialize the glass effect and its controls
+        // A function to initialize the glass effect
         function initializeliquidGL() {
-          let gui, glassFolder;
           // Initialize the Liquid Glass effect on our menu
           glassEffect = liquidGL({
             target: ".menu-wrap",
@@ -524,77 +509,8 @@
             tilt: false,
             tiltFactor: 5,
             reveal: "fade",
+            helper: true,
           });
-
-          // Build GUI after liquidGL initialised (multi-awareness)
-          const lensList = Array.isArray(glassEffect)
-            ? glassEffect
-            : [glassEffect];
-          const firstLens = lensList[0];
-
-          if (firstLens) {
-            gui = new lil.GUI();
-            glassFolder = gui.addFolder("liquidGL Effect");
-
-            const updateAll = (key, value) => {
-              lensList.forEach((ln) => {
-                if (!ln) return;
-                ln.options[key] = value;
-                if (key === "shadow") ln.setShadow(value);
-                if (key === "tilt") ln.setTilt(value);
-              });
-            };
-
-            glassFolder
-              .add(firstLens.options, "refraction", 0, 0.1, 0.001)
-              .onChange((v) => updateAll("refraction", v));
-
-            glassFolder
-              .add(firstLens.options, "aberration", 0, 1, 0.01)
-              .onChange((v) => updateAll("aberration", v));
-
-            glassFolder
-              .add(firstLens.options, "bevelDepth", 0, 0.2, 0.001)
-              .onChange((v) => updateAll("bevelDepth", v));
-
-            glassFolder
-              .add(firstLens.options, "bevelWidth", 0, 0.5, 0.001)
-              .onChange((v) => updateAll("bevelWidth", v));
-
-            glassFolder
-              .add(firstLens.options, "frost", 0, 10, 0.1)
-              .onChange((v) => updateAll("frost", v));
-
-            glassFolder
-              .add(firstLens.options, "magnify", 1, 5, 0.1)
-              .onChange((v) => updateAll("magnify", v));
-
-            glassFolder
-              .add(firstLens.options, "shadow")
-              .onChange((v) => updateAll("shadow", v));
-
-            glassFolder
-              .add(firstLens.options, "specular")
-              .onChange((v) => updateAll("specular", v));
-
-            glassFolder
-              .add(firstLens.options, "tilt")
-              .onChange((v) => updateAll("tilt", v));
-
-            glassFolder
-              .add(firstLens.options, "tiltFactor", 0, 25, 0.1)
-              .onChange((v) => updateAll("tiltFactor", v));
-
-            glassFolder
-              .add(firstLens.options, "tiltEase", 0, 1000, 10)
-              .onChange((v) => updateAll("tiltEase", v));
-
-            glassFolder
-              .add(firstLens.options, "reveal", ["none", "fade"])
-              .onChange((v) => updateAll("reveal", v));
-
-            glassFolder.close();
-          }
         }
 
         /* 3. Lenis + GSAP ticker sync */

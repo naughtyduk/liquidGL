@@ -2,7 +2,7 @@
 
 <a href="https://liquidgl.naughtyduk.com"><img src="https://raw.githubusercontent.com/naughtyduk/liquidGL/main/assets/liquidGL-npm-preview.gif" alt="liquidGL" width="100%" height="auto"/></a>
 
-### v2.0.3
+### v2.1.0
 
 > [!NOTE]
 > `liquidGL` is free to use for both non-commercial and commercial purposes.
@@ -30,6 +30,8 @@
 ## What's New
 
 **Features**
+
+- **2.1.0 - Helper GUI** — A helper GUI is now available to adjust the liquidGL options in real-time during development, helping you to achieve the perfect aesthetic. To enable it, set `helper: true` in the options object when calling `liquidGL()`.
 
 - **Sticky positioning support** — `position: sticky` elements can now be glassified. Sticky lenses are measured every animation frame, so the glass pane tracks the element through its flowing and stuck phases, then releases with it at the end of its containing block — inside nested scroll containers as well as the main document.
 
@@ -227,6 +229,7 @@ Passing `gsap` lets `liquidGL` drive its render loop from the GSAP ticker and ke
 | `tiltFactor` | number   | `5`           | Depth of the tilt in degrees (0–25 recommended).                                                                                                                      |
 | `tiltEase`   | number   | `400`         | Duration in ms for the tilt to settle, applied symmetrically on hover-in and hover-out. `0` applies the tilt instantly.                                               |
 | `magnify`    | number   | `1`           | Magnification factor of the lens (clamped 0.001–3.0). `1` is no magnification.                                                                                        |
+| `helper`     | boolean  | `false`       | Loads the helper GUI for live tweaking of the liquidGL options.                                                                                                       |
 | `on.init`    | function | `—`           | Callback that runs once the first render completes. Receives the lens instance.                                                                                       |
 
 > The `target` parameter is required; all others are optional.
