@@ -1,6 +1,6 @@
 {
   "name": "liquid-gl",
-  "version": "2.0.2",
+  "version": "2.0.3",
   "description": "Liquid Glass - Powered by WebGL.",
   "type": "module",
   "main": "./liquidGL.js",
