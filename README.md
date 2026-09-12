@@ -2,7 +2,7 @@
 
 <a href="https://liquidgl.naughtyduk.com"><img src="/assets/liquidGlass-promo.gif" alt="liquidGL" style="width: 100%"/></a>
 
-### v2.2.0
+### v2.2.1
 
 > [!NOTE]
 > `liquidGL` is now available on npm: `npm install liquid-gl`. The `package/` directory contains the [npm package](https://www.npmjs.com/package/liquid-gl) source code, and is not required when using the CDN/browser script.
@@ -128,6 +128,7 @@ Next, initialise the library with the selector for your target element.
 <script>
   document.addEventListener("DOMContentLoaded", () => {
     const glassEffect = liquidGL({
+      engine: "auto", // Renderer chain: "auto" tries WebGPU then WebGL; force with "webgpu", "webgl2" or "webgl"
       snapshot: "body", // The area used for refraction, <body> recommended and default
       target: ".liquidGL", // CSS selector for the element(s) to glass-ify
       resolution: 2.0, // The quality of the snapshot
@@ -143,6 +144,7 @@ Next, initialise the library with the selector for your target element.
       tiltFactor: 5, // If tilt is enabled, how much tilt
       tiltEase: 400, // Tilt settle duration in ms, on hover in and out
       magnify: 1, // Magnification of lens content
+      helper: false, // Show debug helper - note requires liquidGL-helper.js module
       on: {
         init(instance) {
           // The `init` callback fires once liquidGL has taken its snapshot

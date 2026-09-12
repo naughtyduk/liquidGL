@@ -2,7 +2,7 @@
 
 <a href="https://liquidgl.naughtyduk.com"><img src="https://raw.githubusercontent.com/naughtyduk/liquidGL/main/assets/liquidGL-npm-preview.gif" alt="liquidGL" width="100%" height="auto"/></a>
 
-### v2.2.0
+### v2.2.1
 
 > [!NOTE]
 > `liquidGL` is free to use for both non-commercial and commercial purposes.
@@ -139,23 +139,30 @@ Next, initialise the library with the selector for your target element.
 import liquidGL from "liquid-gl";
 
 const glassEffect = liquidGL({
-  snapshot: "body",
-  target: ".liquidGL",
-  resolution: 2.0,
-  refraction: 0.01,
-  aberration: 0,
-  bevelDepth: 0.08,
-  bevelWidth: 0.15,
-  frost: 0,
-  shadow: true,
-  specular: true,
-  reveal: "fade",
-  tilt: false,
-  tiltFactor: 5,
-  tiltEase: 400,
-  magnify: 1,
+  engine: "auto", // Renderer chain: "auto" tries WebGPU then WebGL; force with "webgpu", "webgl2" or "webgl"
+  snapshot: "body", // The area used for refraction, <body> recommended and default
+  target: ".liquidGL", // CSS selector for the element(s) to glass-ify
+  resolution: 2.0, // The quality of the snapshot
+  refraction: 0.01, // Base refraction strength (0–1)
+  aberration: 0, // Chromatic aberration strength (0–1). 0 = off
+  bevelDepth: 0.08, // Intensity of the edge bevel (0–1)
+  bevelWidth: 0.15, // Width of the bevel as a proportion of the element (0–1)
+  frost: 0, // Subtle blur radius in px. 0 = crystal clear
+  shadow: true, // Adds a soft drop-shadow under the pane
+  specular: true, // Animated light highlights (slightly more GPU)
+  reveal: "fade", // Reveal animation
+  tilt: false, // Whether tilt on hover is enabled
+  tiltFactor: 5, // If tilt is enabled, how much tilt
+  tiltEase: 400, // Tilt settle duration in ms, on hover in and out
+  magnify: 1, // Magnification of lens content
+  helper: false, // Show debug helper - note requires liquidGL-helper.js module
   on: {
     init(instance) {
+      // The `init` callback fires once liquidGL has taken its snapshot
+      // and rendered the first frame. It's the ideal place to hide or
+      // prepare elements for reveal animations (e.g. with GSAP, ScrollTrigger)
+      // because it ensures the content is visible to the snapshot before
+      // you hide it from the user.
       console.log("liquidGL ready!", instance);
     },
   },

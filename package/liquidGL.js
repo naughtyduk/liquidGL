@@ -4,7 +4,7 @@
  *
  * Author: NaughtyDuk© – https://liquidgl.naughtyduk.com
  * Licence: MIT
- * Version: v2.2.0
+ * Version: v2.2.1
  */
 
 const liquidGL = (() => {
