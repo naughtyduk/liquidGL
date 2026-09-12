@@ -2,7 +2,7 @@
 
 <a href="https://liquidgl.naughtyduk.com"><img src="https://raw.githubusercontent.com/naughtyduk/liquidGL/main/assets/liquidGL-npm-preview.gif" alt="liquidGL" width="100%" height="auto"/></a>
 
-### v2.2.1
+### v2.2.2
 
 > [!NOTE]
 > `liquidGL` is free to use for both non-commercial and commercial purposes.
@@ -234,10 +234,10 @@ Passing `gsap` lets `liquidGL` drive its render loop from the GSAP ticker and ke
 
 | Option       | Type     | Default       | Description                                                                                                                                                           |
 | ------------ | -------- | ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `target`     | string   | `'.liquidGL'` | **Required.** CSS selector for the element(s) to glassify.                                                                                                            |
-| `snapshot`   | string   | `'body'`      | CSS selector for the element to snapshot.                                                                                                                             |
-| `resolution` | number   | `2.0`         | Resolution of the background snapshot (clamped 0.1–3.0). Higher is sharper but uses more memory.                                                                      |
 | `engine`     | string   | `'auto'`      | Render backend chain: `'auto'` (WebGPU → WebGL2 → WebGL1 → CSS), `'webgpu'` (WebGPU → CSS), `'webgl2'` (WebGL2 → WebGL1 → CSS) or `'webgl'` (WebGL1 → CSS).           |
+| `snapshot`   | string   | `'body'`      | CSS selector for the element to snapshot.                                                                                                                             |
+| `target`     | string   | `'.liquidGL'` | **Required.** CSS selector for the element(s) to glassify.                                                                                                            |
+| `resolution` | number   | `2.0`         | Resolution of the background snapshot (clamped 0.1–3.0). Higher is sharper but uses more memory.                                                                      |
 | `refraction` | number   | `0.01`        | Base refraction offset applied across the pane (0–1).                                                                                                                 |
 | `aberration` | number   | `0`           | Chromatic aberration strength (0–1). Scales with the refraction offset, so dispersion is strongest at the bevel. `0` disables it and skips the extra texture samples. |
 | `bevelDepth` | number   | `0.08`        | Additional refraction on the edge to simulate depth (0–1).                                                                                                            |
