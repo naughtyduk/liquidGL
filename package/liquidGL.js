@@ -1,16 +1,23 @@
 /*
- * liquidGL – Liquid Glass - Powered by WebGL
+ * liquidGL – Liquid Glass - Powered by WebGPU/WebGL
  * -----------------------------------------------------------------------------
  *
  * Author: NaughtyDuk© – https://liquidgl.naughtyduk.com
  * Licence: MIT
- * Version: v2.1.0
+ * Version: v2.2.0
  */
 
 const liquidGL = (() => {
   "use strict";
 
   const RECAPTURE_INTERVAL_MS = 250;
+
+  const ENGINE_CHAINS = {
+    auto: ["webgpu", "webgl2", "webgl", "experimental-webgl"],
+    webgpu: ["webgpu"],
+    webgl2: ["webgl2", "webgl", "experimental-webgl"],
+    webgl: ["webgl", "experimental-webgl"],
+  };
 
   /* --------------------------------------------------
    *  Utilities
@@ -1804,176 +1811,33 @@ const liquidGL = (() => {
   })();
 
   /* --------------------------------------------------
-   *  Shared renderer (one per page)
+   *  Render backends
    * ------------------------------------------------*/
-  class liquidGLRenderer {
-    constructor(snapshotSelector, snapshotResolution = 1.0) {
-      this._naughtyQueued = false;
-      this.canvas = document.createElement("canvas");
-      this.canvas.style.cssText = `position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0;`;
-      this.canvas.setAttribute("data-liquid-ignore", "");
-      document.body.appendChild(this.canvas);
+  class WebGLBackend {
+    constructor(canvas, contexts = ["webgl2", "webgl", "experimental-webgl"]) {
+      this.kind = "webgl";
+      this.canvas = canvas;
 
       const ctxAttribs = {
         alpha: true,
         premultipliedAlpha: true,
         preserveDrawingBuffer: true,
       };
-      this.gl =
-        this.canvas.getContext("webgl2", ctxAttribs) ||
-        this.canvas.getContext("webgl", ctxAttribs) ||
-        this.canvas.getContext("experimental-webgl", ctxAttribs);
-      if (!this.gl) throw new Error("liquidGL: WebGL unavailable");
+      let gl = null;
+      for (const name of contexts) {
+        gl = canvas.getContext(name, ctxAttribs);
+        if (gl) break;
+      }
+      if (!gl) throw new Error("liquidGL: WebGL unavailable");
 
-      this.lenses = [];
+      this.gl = gl;
+      this.maxTextureSize = gl.getParameter(gl.MAX_TEXTURE_SIZE) || 8192;
       this.texture = null;
-      this.textureWidth = 0;
-      this.textureHeight = 0;
-      this.scaleFactor = 1;
-      this.startTime = Date.now();
-      this._scrollUpdateCounter = 0;
 
-      this._initGL();
-
-      this.snapshotTarget =
-        document.querySelector(snapshotSelector) || document.body;
-      if (!this.snapshotTarget) this.snapshotTarget = document.body;
-
-      this._isScrolling = false;
-      let lastScrollY = window.scrollY;
-      let scrollTimeout;
-      const scrollCheck = () => {
-        if (window.scrollY !== lastScrollY) {
-          this._isScrolling = true;
-          lastScrollY = window.scrollY;
-          clearTimeout(scrollTimeout);
-          scrollTimeout = setTimeout(() => {
-            this._isScrolling = false;
-          }, 200);
-        }
-        requestAnimationFrame(scrollCheck);
-      };
-      requestAnimationFrame(scrollCheck);
-
-      const onResize = debounce(() => {
-        if (this._capturing || this._isScrolling) return;
-
-        if (window.visualViewport && window.visualViewport.scale !== 1) {
-          return;
-        }
-
-        this._dynamicNodes.forEach((node) => {
-          const meta = this._dynMeta.get(node.el);
-          if (meta) {
-            meta.needsRecapture = true;
-            meta.prevDrawRect = null;
-            meta.lastCapture = null;
-          }
-        });
-
-        this._resizeCanvas();
-        this.lenses.forEach((l) => l.updateMetrics());
-        this.captureSnapshot();
-      }, RECAPTURE_INTERVAL_MS);
-      window.addEventListener("resize", onResize, { passive: true });
-
-      if ("ResizeObserver" in window) {
-        new ResizeObserver(onResize).observe(this.snapshotTarget);
-      }
-
-      /* --------------------------------------------------
-       *  Dynamic DOM elements (non-video, e.g. animating text)
-       * ------------------------------------------------*/
-      this._dynamicNodes = [];
-      this._dynMeta = new WeakMap();
-      this._lastDynamicUpdate = 0;
-
-      const styleEl = document.createElement("style");
-      styleEl.id = "liquid-gl-dynamic-styles";
-      document.head.appendChild(styleEl);
-      this._dynamicStyleSheet = styleEl.sheet;
-
-      this._snapshotResolution = Math.max(
-        0.1,
-        Math.min(3.0, snapshotResolution),
-      );
-      this._pendingReveal = [];
-
-      this._resizeCanvas();
-      this.captureSnapshot();
-
-      /* --------------------------------------------------
-       *  Dynamic media (video) support
-       * ------------------------------------------------*/
-      this._videoNodes = Array.from(
-        this.snapshotTarget.querySelectorAll("video"),
-      );
-      this._videoNodes = this._videoNodes.filter((v) => !this._isIgnored(v));
-      this._tmpCanvas = document.createElement("canvas");
-      this._tmpCtx = this._tmpCanvas.getContext("2d");
-
-      this._videoFrameState = new WeakMap();
-
-      this._videoAlphaState = new WeakMap();
-
-      this.canvas.style.opacity = "0";
-
-      this.useExternalTicker = false;
-
-      /* --------------------------------------------------
-       *  Inline worker for heavy dynamic nodes
-       * ------------------------------------------------*/
-      this._workerEnabled =
-        typeof OffscreenCanvas !== "undefined" &&
-        typeof Worker !== "undefined" &&
-        typeof ImageBitmap !== "undefined";
-
-      if (this._workerEnabled) {
-        const workerSrc = `
-          /* dynamic-element worker (runs in its own thread) */
-          self.onmessage = async (e) => {
-            const { id, width, height, snap, dyn } = e.data;
-            const off = new OffscreenCanvas(width, height);
-            const ctx = off.getContext('2d');
-
-            ctx.drawImage(snap, 0, 0, width, height);
-            ctx.drawImage(dyn, 0, 0, width, height);
-
-            const bmp = await off.transferToImageBitmap();
-            self.postMessage({ id, bmp }, [bmp]);
-          };
-        `;
-        const blob = new Blob([workerSrc], { type: "application/javascript" });
-        this._dynWorker = new Worker(URL.createObjectURL(blob), {
-          type: "module",
-        });
-
-        this._dynJobs = new Map();
-
-        this._dynWorker.onmessage = (e) => {
-          const { id, bmp } = e.data;
-          const meta = this._dynJobs.get(id);
-          if (!meta) return;
-          this._dynJobs.delete(id);
-
-          const { x, y, w, h } = meta;
-          const gl = this.gl;
-          gl.bindTexture(gl.TEXTURE_2D, this.texture);
-          gl.texSubImage2D(
-            gl.TEXTURE_2D,
-            0,
-            x,
-            y,
-            gl.RGBA,
-            gl.UNSIGNED_BYTE,
-            bmp,
-          );
-        };
-      }
+      this._initLensProgram();
     }
 
-    /* ----------------------------- */
-    _initGL() {
+    _initLensProgram() {
       const vsSource = `
         attribute vec2 a_position;
         varying vec2 v_uv;
@@ -2132,8 +1996,8 @@ const liquidGL = (() => {
           gl_FragColor = final;
         }`;
 
-      this.program = createProgram(this.gl, vsSource, fsSource);
       const gl = this.gl;
+      this.program = createProgram(gl, vsSource, fsSource);
       if (!this.program) throw new Error("liquidGL: Shader failed");
 
       const posBuf = gl.createBuffer();
@@ -2177,6 +2041,1085 @@ const liquidGL = (() => {
       };
     }
 
+    resize() {
+      this.gl.viewport(0, 0, this.canvas.width, this.canvas.height);
+    }
+
+    uploadSnapshot(srcCanvas) {
+      const gl = this.gl;
+      if (!this.texture) this.texture = gl.createTexture();
+      gl.bindTexture(gl.TEXTURE_2D, this.texture);
+      gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+      gl.texImage2D(
+        gl.TEXTURE_2D,
+        0,
+        gl.RGBA,
+        gl.RGBA,
+        gl.UNSIGNED_BYTE,
+        srcCanvas,
+      );
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      this._vFboTexture = null;
+      return true;
+    }
+
+    uploadRegion(x, y, source) {
+      if (!this.texture) return;
+      const gl = this.gl;
+      gl.bindTexture(gl.TEXTURE_2D, this.texture);
+      gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+      gl.texSubImage2D(
+        gl.TEXTURE_2D,
+        0,
+        x,
+        y,
+        gl.RGBA,
+        gl.UNSIGNED_BYTE,
+        source,
+      );
+    }
+
+    _initVideoBlit() {
+      if (this._vBlitReady !== undefined) return this._vBlitReady;
+
+      const gl = this.gl;
+
+      const vs = `
+        attribute vec2 a_position;
+        varying vec2 v_uv;
+        void main(){
+          v_uv = (a_position + 1.0) * 0.5;
+          gl_Position = vec4(a_position, 0.0, 1.0);
+        }`;
+
+      const fs = `
+        precision mediump float;
+        varying vec2 v_uv;
+        uniform sampler2D u_src;
+        uniform vec4 u_srcRect;
+        void main(){
+          gl_FragColor = texture2D(u_src, u_srcRect.xy + v_uv * u_srcRect.zw);
+        }`;
+
+      const prog = createProgram(gl, vs, fs);
+      if (!prog) {
+        this._vBlitReady = false;
+        return false;
+      }
+
+      this._vProg = prog;
+      this._vPosLoc = gl.getAttribLocation(prog, "a_position");
+      this._vU = {
+        src: gl.getUniformLocation(prog, "u_src"),
+        srcRect: gl.getUniformLocation(prog, "u_srcRect"),
+      };
+
+      this._vTex = gl.createTexture();
+      gl.bindTexture(gl.TEXTURE_2D, this._vTex);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      gl.bindTexture(gl.TEXTURE_2D, this.texture);
+
+      this._vFbo = gl.createFramebuffer();
+      this._vFboTexture = null;
+
+      this._vBlitReady = true;
+      return true;
+    }
+
+    _restoreLensProgramState() {
+      const gl = this.gl;
+      gl.useProgram(this.program);
+      gl.bindBuffer(gl.ARRAY_BUFFER, this._posBuf);
+      gl.enableVertexAttribArray(this._posLoc);
+      gl.vertexAttribPointer(this._posLoc, 2, gl.FLOAT, false, 0, 0);
+      gl.activeTexture(gl.TEXTURE0);
+      gl.bindTexture(gl.TEXTURE_2D, this.texture);
+      gl.uniform1i(this.u.tex, 0);
+    }
+
+    blitVideo(vid, dstX, dstY, dstW, dstH, srcRect) {
+      if (!this.texture || !this._initVideoBlit()) return false;
+      const gl = this.gl;
+
+      gl.bindFramebuffer(gl.FRAMEBUFFER, this._vFbo);
+
+      if (this._vFboTexture !== this.texture) {
+        gl.framebufferTexture2D(
+          gl.FRAMEBUFFER,
+          gl.COLOR_ATTACHMENT0,
+          gl.TEXTURE_2D,
+          this.texture,
+          0,
+        );
+        if (
+          gl.checkFramebufferStatus(gl.FRAMEBUFFER) !== gl.FRAMEBUFFER_COMPLETE
+        ) {
+          gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+          this._vBlitReady = false;
+          return false;
+        }
+        this._vFboTexture = this.texture;
+      }
+
+      gl.activeTexture(gl.TEXTURE0);
+      gl.bindTexture(gl.TEXTURE_2D, this._vTex);
+      gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+
+      try {
+        gl.texImage2D(
+          gl.TEXTURE_2D,
+          0,
+          gl.RGBA,
+          gl.RGBA,
+          gl.UNSIGNED_BYTE,
+          vid,
+        );
+      } catch (e) {
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+        this._restoreLensProgramState();
+        return false;
+      }
+
+      gl.useProgram(this._vProg);
+      gl.bindBuffer(gl.ARRAY_BUFFER, this._posBuf);
+      gl.enableVertexAttribArray(this._vPosLoc);
+      gl.vertexAttribPointer(this._vPosLoc, 2, gl.FLOAT, false, 0, 0);
+
+      gl.uniform1i(this._vU.src, 0);
+      gl.uniform4f(
+        this._vU.srcRect,
+        srcRect.u,
+        srcRect.v,
+        srcRect.uw,
+        srcRect.vh,
+      );
+
+      gl.viewport(dstX, dstY, dstW, dstH);
+      gl.drawArrays(gl.TRIANGLES, 0, 6);
+
+      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+      this._restoreLensProgramState();
+
+      return true;
+    }
+
+    beginFrame(width, height, time) {
+      const gl = this.gl;
+      gl.clearColor(0, 0, 0, 0);
+      gl.clear(gl.COLOR_BUFFER_BIT);
+      gl.useProgram(this.program);
+      gl.activeTexture(gl.TEXTURE0);
+      gl.bindTexture(gl.TEXTURE_2D, this.texture);
+      gl.uniform1i(this.u.tex, 0);
+      gl.uniform1f(this.u.time, time);
+    }
+
+    drawLens(lens, p) {
+      const gl = this.gl;
+
+      gl.viewport(p.x, p.y, p.w, p.h);
+      gl.uniform2f(this.u.res, p.w, p.h);
+      gl.uniform2f(this.u.subpixel, p.subX, p.subY);
+      gl.uniform2f(this.u.boxSize, p.boxW, p.boxH);
+      gl.uniform4f(
+        this.u.bounds,
+        p.bounds[0],
+        p.bounds[1],
+        p.bounds[2],
+        p.bounds[3],
+      );
+      gl.uniform2f(this.u.textureResolution, p.texW, p.texH);
+      gl.uniform1f(this.u.refraction, p.refraction);
+      gl.uniform1f(this.u.aberration, p.aberration);
+      gl.uniform1f(this.u.bevelDepth, p.bevelDepth);
+      gl.uniform1f(this.u.bevelWidth, p.bevelWidth);
+      gl.uniform1f(this.u.frost, p.frost);
+      gl.uniform1f(this.u.radius, p.radius);
+      gl.uniform1i(this.u.specular, p.specular);
+      gl.uniform1f(this.u.revealProgress, p.revealProgress);
+      gl.uniform1i(this.u.revealType, p.revealType);
+      gl.uniform1f(this.u.magnify, p.magnify);
+      gl.uniform1f(this.u.tiltX, p.tiltX);
+      gl.uniform1f(this.u.tiltY, p.tiltY);
+
+      gl.drawArrays(gl.TRIANGLES, 0, 6);
+    }
+
+    endFrame() {}
+
+    clearRegions(rects) {
+      const gl = this.gl;
+      rects.forEach(({ x, y, w, h }) => {
+        gl.enable(gl.SCISSOR_TEST);
+        gl.scissor(x, y, w, h);
+        gl.clearColor(0, 0, 0, 0);
+        gl.clear(gl.COLOR_BUFFER_BIT);
+        gl.disable(gl.SCISSOR_TEST);
+      });
+    }
+  }
+
+  /* --------------------------------------------------
+   *  WGSL sources (WebGPU backend)
+   * ------------------------------------------------*/
+  const WEBGPU_LENS_WGSL = `
+struct LensUniforms {
+  resolution: vec2<f32>,
+  textureResolution: vec2<f32>,
+  bounds: vec4<f32>,
+  subpixel: vec2<f32>,
+  boxSize: vec2<f32>,
+  refraction: f32,
+  aberration: f32,
+  bevelDepth: f32,
+  bevelWidth: f32,
+  frost: f32,
+  radius: f32,
+  time: f32,
+  specular: f32,
+  revealProgress: f32,
+  revealType: f32,
+  tiltX: f32,
+  tiltY: f32,
+  magnify: f32,
+};
+
+@group(0) @binding(0) var u_tex: texture_2d<f32>;
+@group(0) @binding(1) var u_samp: sampler;
+@group(1) @binding(0) var<uniform> u: LensUniforms;
+
+struct VSOut {
+  @builtin(position) pos: vec4<f32>,
+  @location(0) uv: vec2<f32>,
+};
+
+@vertex
+fn vs(@location(0) a_position: vec2<f32>) -> VSOut {
+  var o: VSOut;
+  o.uv = (a_position + vec2<f32>(1.0)) * 0.5;
+  o.pos = vec4<f32>(a_position, 0.0, 1.0);
+  return o;
+}
+
+fn udRoundBox(p: vec2<f32>, b: vec2<f32>, r: f32) -> f32 {
+  return length(max(abs(p) - b + vec2<f32>(r), vec2<f32>(0.0))) - r;
+}
+
+fn cornerNormal(p: vec2<f32>, b: vec2<f32>, r: f32, fb: vec2<f32>) -> vec2<f32> {
+  let q = abs(p) - b + vec2<f32>(r);
+  let m = max(q, vec2<f32>(0.0));
+  let l = length(m);
+  if (l <= 0.0) { return fb; }
+  let w = smoothstep(0.0, max(r * 0.5, 1.0), min(m.x, m.y));
+  if (w <= 0.0) { return fb; }
+  let s = vec2<f32>(select(1.0, -1.0, p.x < 0.0), select(1.0, -1.0, p.y < 0.0));
+  return normalize(mix(fb, s * (m / l), w));
+}
+
+fn random2(st: vec2<f32>) -> f32 {
+  return fract(sin(dot(st, vec2<f32>(12.9898, 78.233))) * 43758.5453123);
+}
+
+fn edgeFactor(p_px: vec2<f32>, b_px: vec2<f32>, radius_px: f32) -> f32 {
+  let d = -udRoundBox(p_px, b_px, radius_px);
+  let bevel_px = u.bevelWidth * min(u.boxSize.x, u.boxSize.y);
+  return 1.0 - smoothstep(0.0, bevel_px, d);
+}
+
+@fragment
+fn fs(in: VSOut) -> @location(0) vec4<f32> {
+  var p = in.uv - vec2<f32>(0.5);
+  p.x = p.x * (u.resolution.x / u.resolution.y);
+
+  let p_px = in.uv * u.resolution - u.subpixel - 0.5 * u.boxSize;
+  let b_px = 0.5 * u.boxSize;
+
+  let edge = edgeFactor(p_px, b_px, u.radius);
+  let offsetAmt = edge * u.refraction + pow(edge, 10.0) * u.bevelDepth;
+  let centreBlend = smoothstep(0.15, 0.45, length(p));
+  let refractDir = cornerNormal(p_px, b_px, u.radius, normalize(p));
+  let offset = refractDir * offsetAmt * centreBlend;
+
+  let tiltRefractionScale = 0.05;
+  let deg2rad = 0.017453292519943295;
+  let tiltOffset = vec2<f32>(tan(u.tiltY * deg2rad), -tan(u.tiltX * deg2rad)) * tiltRefractionScale;
+
+  let localUV = (in.uv - vec2<f32>(0.5)) / vec2<f32>(u.magnify) + vec2<f32>(0.5);
+  let flippedUV = vec2<f32>(localUV.x, 1.0 - localUV.y);
+  let mapped = u.bounds.xy + flippedUV * u.bounds.zw;
+  let refracted = mapped + offset - tiltOffset;
+
+  let oob = max(max(-refracted.x, refracted.x - 1.0), max(-refracted.y, refracted.y - 1.0));
+  let blend = 1.0 - smoothstep(0.0, 0.01, oob);
+  let sampleUV = mix(mapped, refracted, blend);
+
+  let baseCol = textureSample(u_tex, u_samp, mapped);
+
+  let texel = vec2<f32>(1.0) / u.textureResolution;
+  var refrCol: vec4<f32>;
+
+  let chroma = offset * u.aberration;
+
+  if (u.frost > 0.0) {
+    let radius = u.frost * 4.0;
+    var sum = vec4<f32>(0.0);
+
+    for (var i = 0; i < 16; i = i + 1) {
+      let fi = f32(i);
+      let angle = random2(in.uv + vec2<f32>(fi)) * 6.283185;
+      let dist = sqrt(random2(in.uv - vec2<f32>(fi))) * radius;
+      let foff = vec2<f32>(cos(angle), sin(angle)) * texel * dist;
+      if (u.aberration > 0.0) {
+        let c0 = textureSample(u_tex, u_samp, sampleUV + foff - chroma);
+        let c1 = textureSample(u_tex, u_samp, sampleUV + foff);
+        let c2 = textureSample(u_tex, u_samp, sampleUV + foff + chroma);
+        sum = sum + vec4<f32>(c0.r, c1.g, c2.b, c1.a);
+      } else {
+        sum = sum + textureSample(u_tex, u_samp, sampleUV + foff);
+      }
+    }
+    refrCol = sum / 16.0;
+  } else {
+    refrCol = textureSample(u_tex, u_samp, sampleUV);
+    refrCol = refrCol + textureSample(u_tex, u_samp, sampleUV + vec2<f32>(texel.x, 0.0));
+    refrCol = refrCol + textureSample(u_tex, u_samp, sampleUV + vec2<f32>(-texel.x, 0.0));
+    refrCol = refrCol + textureSample(u_tex, u_samp, sampleUV + vec2<f32>(0.0, texel.y));
+    refrCol = refrCol + textureSample(u_tex, u_samp, sampleUV + vec2<f32>(0.0, -texel.y));
+    refrCol = refrCol / 5.0;
+
+    if (u.aberration > 0.0) {
+      let chromaR = textureSample(u_tex, u_samp, sampleUV - chroma).r;
+      let chromaB = textureSample(u_tex, u_samp, sampleUV + chroma).b;
+      refrCol = vec4<f32>(chromaR, refrCol.g, chromaB, refrCol.a);
+    }
+  }
+
+  if (refrCol.a < 0.1) {
+    refrCol = baseCol;
+  }
+
+  var finalCol = refrCol;
+
+  let dmask = udRoundBox(p_px, b_px, u.radius);
+  let inShape = 1.0 - smoothstep(-0.5, 0.5, dmask);
+
+  if (u.specular > 0.5) {
+    let lp1 = vec2<f32>(sin(u.time * 0.2), cos(u.time * 0.3)) * 0.6 + vec2<f32>(0.5);
+    let lp2 = vec2<f32>(sin(u.time * -0.4 + 1.5), cos(u.time * 0.25 - 0.5)) * 0.6 + vec2<f32>(0.5);
+    var h = 0.0;
+    h = h + smoothstep(0.4, 0.0, distance(in.uv, lp1)) * 0.1;
+    h = h + smoothstep(0.5, 0.0, distance(in.uv, lp2)) * 0.08;
+    finalCol = vec4<f32>(finalCol.rgb + vec3<f32>(h), finalCol.a);
+  }
+
+  if (u.revealType == 1.0) {
+    finalCol = vec4<f32>(finalCol.rgb * u.revealProgress, finalCol.a * u.revealProgress);
+  }
+
+  finalCol = vec4<f32>(finalCol.rgb * inShape, finalCol.a * inShape);
+
+  return finalCol;
+}`;
+
+  const WEBGPU_BLIT_WGSL = `
+@group(0) @binding(0) var u_src: texture_2d<f32>;
+@group(0) @binding(1) var u_samp: sampler;
+@group(1) @binding(0) var<uniform> u_srcRect: vec4<f32>;
+
+struct VSOut {
+  @builtin(position) pos: vec4<f32>,
+  @location(0) uv: vec2<f32>,
+};
+
+@vertex
+fn vs(@location(0) a_position: vec2<f32>) -> VSOut {
+  var o: VSOut;
+  o.uv = (a_position + vec2<f32>(1.0)) * 0.5;
+  o.pos = vec4<f32>(a_position, 0.0, 1.0);
+  return o;
+}
+
+@fragment
+fn fs(in: VSOut) -> @location(0) vec4<f32> {
+  let uv = vec2<f32>(in.uv.x, 1.0 - in.uv.y);
+  return textureSample(u_src, u_samp, u_srcRect.xy + uv * u_srcRect.zw);
+}`;
+
+  const WEBGPU_CLEAR_WGSL = `
+@vertex
+fn vs(@location(0) a_position: vec2<f32>) -> @builtin(position) vec4<f32> {
+  return vec4<f32>(a_position, 0.0, 1.0);
+}
+
+@fragment
+fn fs() -> @location(0) vec4<f32> {
+  return vec4<f32>(0.0, 0.0, 0.0, 0.0);
+}`;
+
+  const GPU_UNIFORM_FLOATS = 64;
+
+  class WebGPUBackend {
+    static async create(canvas) {
+      if (typeof navigator === "undefined" || !("gpu" in navigator))
+        return null;
+      try {
+        const adapter = await navigator.gpu.requestAdapter();
+        if (!adapter) return null;
+        const device = await adapter.requestDevice();
+
+        const lensModule = device.createShaderModule({
+          code: WEBGPU_LENS_WGSL,
+        });
+        const blitModule = device.createShaderModule({
+          code: WEBGPU_BLIT_WGSL,
+        });
+        const clearModule = device.createShaderModule({
+          code: WEBGPU_CLEAR_WGSL,
+        });
+        const infos = await Promise.all([
+          lensModule.getCompilationInfo(),
+          blitModule.getCompilationInfo(),
+          clearModule.getCompilationInfo(),
+        ]);
+        const hasError = infos.some((info) =>
+          info.messages.some((m) => m.type === "error"),
+        );
+        if (hasError) return null;
+
+        return new WebGPUBackend(
+          canvas,
+          device,
+          lensModule,
+          blitModule,
+          clearModule,
+        );
+      } catch (e) {
+        return null;
+      }
+    }
+
+    constructor(canvas, device, lensModule, blitModule, clearModule) {
+      this.kind = "webgpu";
+      this.canvas = canvas;
+      this.device = device;
+      this.maxTextureSize = device.limits.maxTextureDimension2D || 8192;
+
+      this.ctx = canvas.getContext("webgpu");
+      if (!this.ctx)
+        throw new Error("liquidGL: WebGPU canvas context unavailable");
+      this.format = navigator.gpu.getPreferredCanvasFormat();
+      this.ctx.configure({
+        device,
+        format: this.format,
+        alphaMode: "premultiplied",
+      });
+
+      device.lost.then((info) => {
+        if (info.reason !== "destroyed") {
+          console.warn("liquidGL: WebGPU device lost:", info.message);
+        }
+      });
+
+      const quad = new Float32Array([-1, -1, 1, -1, -1, 1, -1, 1, 1, -1, 1, 1]);
+      this._vb = device.createBuffer({
+        size: quad.byteLength,
+        usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
+      });
+      device.queue.writeBuffer(this._vb, 0, quad);
+
+      this._sampler = device.createSampler({
+        magFilter: "linear",
+        minFilter: "linear",
+        addressModeU: "clamp-to-edge",
+        addressModeV: "clamp-to-edge",
+      });
+
+      this._texSampLayout = device.createBindGroupLayout({
+        entries: [
+          {
+            binding: 0,
+            visibility: GPUShaderStage.FRAGMENT,
+            texture: {},
+          },
+          {
+            binding: 1,
+            visibility: GPUShaderStage.FRAGMENT,
+            sampler: {},
+          },
+        ],
+      });
+      this._dynamicUniformLayout = device.createBindGroupLayout({
+        entries: [
+          {
+            binding: 0,
+            visibility: GPUShaderStage.FRAGMENT,
+            buffer: { type: "uniform", hasDynamicOffset: true },
+          },
+        ],
+      });
+      this._staticUniformLayout = device.createBindGroupLayout({
+        entries: [
+          {
+            binding: 0,
+            visibility: GPUShaderStage.FRAGMENT,
+            buffer: { type: "uniform" },
+          },
+        ],
+      });
+
+      const quadBufferLayout = {
+        arrayStride: 8,
+        attributes: [{ shaderLocation: 0, offset: 0, format: "float32x2" }],
+      };
+
+      this._lensPipe = device.createRenderPipeline({
+        layout: device.createPipelineLayout({
+          bindGroupLayouts: [this._texSampLayout, this._dynamicUniformLayout],
+        }),
+        vertex: {
+          module: lensModule,
+          entryPoint: "vs",
+          buffers: [quadBufferLayout],
+        },
+        fragment: {
+          module: lensModule,
+          entryPoint: "fs",
+          targets: [{ format: this.format }],
+        },
+        primitive: { topology: "triangle-list" },
+      });
+
+      this._blitPipe = device.createRenderPipeline({
+        layout: device.createPipelineLayout({
+          bindGroupLayouts: [this._texSampLayout, this._staticUniformLayout],
+        }),
+        vertex: {
+          module: blitModule,
+          entryPoint: "vs",
+          buffers: [quadBufferLayout],
+        },
+        fragment: {
+          module: blitModule,
+          entryPoint: "fs",
+          targets: [{ format: "rgba8unorm" }],
+        },
+        primitive: { topology: "triangle-list" },
+      });
+
+      this._clearPipe = device.createRenderPipeline({
+        layout: device.createPipelineLayout({ bindGroupLayouts: [] }),
+        vertex: {
+          module: clearModule,
+          entryPoint: "vs",
+          buffers: [quadBufferLayout],
+        },
+        fragment: {
+          module: clearModule,
+          entryPoint: "fs",
+          targets: [{ format: this.format }],
+        },
+        primitive: { topology: "triangle-list" },
+      });
+
+      this.texture = null;
+      this._texBindGroup = null;
+      this._videoTex = null;
+      this._videoBindGroup = null;
+      this._videoTexW = 0;
+      this._videoTexH = 0;
+
+      this._blitUniform = device.createBuffer({
+        size: 16,
+        usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+      });
+      this._blitBindGroup = device.createBindGroup({
+        layout: this._staticUniformLayout,
+        entries: [{ binding: 0, resource: { buffer: this._blitUniform } }],
+      });
+
+      this._uniformBuf = null;
+      this._uniformBindGroup = null;
+      this._uniformCapacity = 0;
+
+      this._enc = null;
+      this._drawQueue = [];
+      this._frameTime = 0;
+    }
+
+    resize() {}
+
+    _ensureUniformCapacity(lensCount) {
+      const need = lensCount * 256;
+      if (this._uniformBuf && this._uniformCapacity >= need) return;
+      if (this._uniformBuf) this._uniformBuf.destroy();
+      const cap = Math.max(need, 256 * 8);
+      this._uniformBuf = this.device.createBuffer({
+        size: cap,
+        usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+      });
+      this._uniformBindGroup = this.device.createBindGroup({
+        layout: this._dynamicUniformLayout,
+        entries: [
+          {
+            binding: 0,
+            resource: { buffer: this._uniformBuf, offset: 0, size: 112 },
+          },
+        ],
+      });
+      this._uniformCapacity = cap;
+    }
+
+    uploadSnapshot(srcCanvas) {
+      const w = srcCanvas.width;
+      const h = srcCanvas.height;
+      if (
+        !this.texture ||
+        this.texture.width !== w ||
+        this.texture.height !== h
+      ) {
+        if (this.texture) this.texture.destroy();
+        this.texture = this.device.createTexture({
+          size: [w, h],
+          format: "rgba8unorm",
+          usage:
+            GPUTextureUsage.TEXTURE_BINDING |
+            GPUTextureUsage.COPY_DST |
+            GPUTextureUsage.RENDER_ATTACHMENT,
+        });
+        this._texBindGroup = this.device.createBindGroup({
+          layout: this._texSampLayout,
+          entries: [
+            { binding: 0, resource: this.texture.createView() },
+            { binding: 1, resource: this._sampler },
+          ],
+        });
+      }
+      try {
+        this.device.queue.copyExternalImageToTexture(
+          { source: srcCanvas },
+          { texture: this.texture },
+          { width: w, height: h },
+        );
+      } catch (e) {
+        console.error("liquidGL: WebGPU snapshot upload failed", e);
+        return false;
+      }
+      return true;
+    }
+
+    uploadRegion(x, y, source) {
+      if (!this.texture || !source) return;
+      const w = Math.min(source.width, this.texture.width - x);
+      const h = Math.min(source.height, this.texture.height - y);
+      if (w <= 0 || h <= 0 || x < 0 || y < 0) return;
+      try {
+        this.device.queue.copyExternalImageToTexture(
+          { source },
+          { texture: this.texture, origin: [x, y] },
+          { width: w, height: h },
+        );
+      } catch (e) {
+        console.warn("liquidGL: WebGPU region upload failed", e);
+      }
+    }
+
+    blitVideo(vid, dstX, dstY, dstW, dstH, srcRect) {
+      if (!this.texture) return false;
+      const device = this.device;
+      const vw = vid.videoWidth;
+      const vh = vid.videoHeight;
+      if (!vw || !vh) return false;
+
+      try {
+        if (!this._vCanvas) {
+          this._vCanvas = document.createElement("canvas");
+          this._vCtx = this._vCanvas.getContext("2d");
+        }
+        if (this._vCanvas.width !== vw || this._vCanvas.height !== vh) {
+          this._vCanvas.width = vw;
+          this._vCanvas.height = vh;
+        }
+        this._vCtx.drawImage(vid, 0, 0, vw, vh);
+
+        if (
+          !this._videoTex ||
+          this._videoTexW !== vw ||
+          this._videoTexH !== vh
+        ) {
+          if (this._videoTex) this._videoTex.destroy();
+          this._videoTex = device.createTexture({
+            size: [vw, vh],
+            format: "rgba8unorm",
+            usage:
+              GPUTextureUsage.TEXTURE_BINDING |
+              GPUTextureUsage.COPY_DST |
+              GPUTextureUsage.RENDER_ATTACHMENT,
+          });
+          this._videoTexW = vw;
+          this._videoTexH = vh;
+          this._videoBindGroup = device.createBindGroup({
+            layout: this._texSampLayout,
+            entries: [
+              { binding: 0, resource: this._videoTex.createView() },
+              { binding: 1, resource: this._sampler },
+            ],
+          });
+        }
+
+        device.queue.copyExternalImageToTexture(
+          { source: this._vCanvas },
+          { texture: this._videoTex },
+          { width: vw, height: vh },
+        );
+        device.queue.writeBuffer(
+          this._blitUniform,
+          0,
+          new Float32Array([srcRect.u, srcRect.v, srcRect.uw, srcRect.vh]),
+        );
+
+        const enc = device.createCommandEncoder();
+        const pass = enc.beginRenderPass({
+          colorAttachments: [
+            {
+              view: this.texture.createView(),
+              loadOp: "load",
+              storeOp: "store",
+            },
+          ],
+        });
+        pass.setPipeline(this._blitPipe);
+        pass.setVertexBuffer(0, this._vb);
+        pass.setBindGroup(0, this._videoBindGroup);
+        pass.setBindGroup(1, this._blitBindGroup);
+        pass.setViewport(
+          dstX,
+          dstY,
+          Math.max(1, dstW),
+          Math.max(1, dstH),
+          0,
+          1,
+        );
+        pass.draw(6);
+        pass.end();
+        device.queue.submit([enc.finish()]);
+        return true;
+      } catch (e) {
+        return false;
+      }
+    }
+
+    beginFrame(width, height, time) {
+      this._frameTime = time;
+      this._drawQueue.length = 0;
+      this._enc = this.device.createCommandEncoder();
+    }
+
+    drawLens(lens, p) {
+      const cx = Math.max(0, p.x);
+      const cy = Math.max(0, p.y);
+      const cw = Math.min(this.canvas.width - cx, p.w);
+      const ch = Math.min(this.canvas.height - cy, p.h);
+      if (cw <= 0 || ch <= 0) return;
+      this._drawQueue.push({ p, x: cx, y: cy, w: cw, h: ch });
+    }
+
+    endFrame() {
+      const device = this.device;
+      const draws = this._drawQueue;
+
+      this._ensureUniformCapacity(Math.max(1, draws.length));
+
+      if (draws.length) {
+        const data = new Float32Array(GPU_UNIFORM_FLOATS * draws.length);
+        for (let i = 0; i < draws.length; i++) {
+          const p = draws[i].p;
+          const o = i * GPU_UNIFORM_FLOATS;
+          data[o] = p.w;
+          data[o + 1] = p.h;
+          data[o + 2] = p.texW;
+          data[o + 3] = p.texH;
+          data[o + 4] = p.bounds[0];
+          data[o + 5] = p.bounds[1];
+          data[o + 6] = p.bounds[2];
+          data[o + 7] = p.bounds[3];
+          data[o + 8] = p.subX;
+          data[o + 9] = p.subY;
+          data[o + 10] = p.boxW;
+          data[o + 11] = p.boxH;
+          data[o + 12] = p.refraction;
+          data[o + 13] = p.aberration;
+          data[o + 14] = p.bevelDepth;
+          data[o + 15] = p.bevelWidth;
+          data[o + 16] = p.frost;
+          data[o + 17] = p.radius;
+          data[o + 18] = this._frameTime;
+          data[o + 19] = p.specular;
+          data[o + 20] = p.revealProgress;
+          data[o + 21] = p.revealType;
+          data[o + 22] = p.tiltX;
+          data[o + 23] = p.tiltY;
+          data[o + 24] = p.magnify;
+        }
+        device.queue.writeBuffer(this._uniformBuf, 0, data);
+      }
+
+      const view = this.ctx.getCurrentTexture().createView();
+      const pass = this._enc.beginRenderPass({
+        colorAttachments: [
+          {
+            view,
+            clearValue: { r: 0, g: 0, b: 0, a: 0 },
+            loadOp: "clear",
+            storeOp: "store",
+          },
+        ],
+      });
+      if (draws.length) {
+        pass.setPipeline(this._lensPipe);
+        pass.setVertexBuffer(0, this._vb);
+        pass.setBindGroup(0, this._texBindGroup);
+        for (let i = 0; i < draws.length; i++) {
+          const d = draws[i];
+          pass.setViewport(d.x, d.y, d.w, d.h, 0, 1);
+          pass.setBindGroup(1, this._uniformBindGroup, [i * 256]);
+          pass.draw(6);
+        }
+      }
+      pass.end();
+
+      device.queue.submit([this._enc.finish()]);
+      this._enc = null;
+    }
+
+    clearRegions(rects) {
+      if (!rects.length) return;
+      const device = this.device;
+      const enc = device.createCommandEncoder();
+      const pass = enc.beginRenderPass({
+        colorAttachments: [
+          {
+            view: this.ctx.getCurrentTexture().createView(),
+            loadOp: "load",
+            storeOp: "store",
+          },
+        ],
+      });
+      pass.setPipeline(this._clearPipe);
+      pass.setVertexBuffer(0, this._vb);
+      rects.forEach(({ x, y, w, h }) => {
+        const cx = Math.max(0, Math.min(this.canvas.width, x));
+        const cy = Math.max(0, Math.min(this.canvas.height, y));
+        const cw = Math.max(0, Math.min(this.canvas.width - cx, w));
+        const ch = Math.max(0, Math.min(this.canvas.height - cy, h));
+        if (cw > 0 && ch > 0) {
+          pass.setScissorRect(cx, cy, cw, ch);
+          pass.draw(6);
+        }
+      });
+      pass.end();
+      device.queue.submit([enc.finish()]);
+    }
+  }
+
+  /* --------------------------------------------------
+   *  Shared renderer (one per page)
+   * ------------------------------------------------*/
+  class liquidGLRenderer {
+    constructor(snapshotSelector, snapshotResolution = 1.0, engine = "auto") {
+      this._engine = engine;
+      this._naughtyQueued = false;
+      this.canvas = document.createElement("canvas");
+      this.canvas.style.cssText = `position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0;`;
+      this.canvas.setAttribute("data-liquid-ignore", "");
+      document.body.appendChild(this.canvas);
+
+      this.backend = null;
+      this._backendFailed = false;
+      this._pendingLensActivation = [];
+
+      this.lenses = [];
+      this.hasTexture = false;
+      this.textureWidth = 0;
+      this.textureHeight = 0;
+      this.scaleFactor = 1;
+      this.startTime = Date.now();
+      this._scrollUpdateCounter = 0;
+
+      this._backendReady = this._selectBackend();
+
+      this.snapshotTarget =
+        document.querySelector(snapshotSelector) || document.body;
+      if (!this.snapshotTarget) this.snapshotTarget = document.body;
+
+      this._isScrolling = false;
+      let lastScrollY = window.scrollY;
+      let scrollTimeout;
+      const scrollCheck = () => {
+        if (window.scrollY !== lastScrollY) {
+          this._isScrolling = true;
+          lastScrollY = window.scrollY;
+          clearTimeout(scrollTimeout);
+          scrollTimeout = setTimeout(() => {
+            this._isScrolling = false;
+          }, 200);
+        }
+        requestAnimationFrame(scrollCheck);
+      };
+      requestAnimationFrame(scrollCheck);
+
+      const onResize = debounce(() => {
+        if (this._capturing || this._isScrolling) return;
+
+        if (window.visualViewport && window.visualViewport.scale !== 1) {
+          return;
+        }
+
+        this._dynamicNodes.forEach((node) => {
+          const meta = this._dynMeta.get(node.el);
+          if (meta) {
+            meta.needsRecapture = true;
+            meta.prevDrawRect = null;
+            meta.lastCapture = null;
+          }
+        });
+
+        this._resizeCanvas();
+        this.lenses.forEach((l) => l.updateMetrics());
+        this.captureSnapshot();
+      }, RECAPTURE_INTERVAL_MS);
+      window.addEventListener("resize", onResize, { passive: true });
+
+      if ("ResizeObserver" in window) {
+        new ResizeObserver(onResize).observe(this.snapshotTarget);
+      }
+
+      /* --------------------------------------------------
+       *  Dynamic DOM elements (non-video, e.g. animating text)
+       * ------------------------------------------------*/
+      this._dynamicNodes = [];
+      this._dynMeta = new WeakMap();
+      this._lastDynamicUpdate = 0;
+
+      const styleEl = document.createElement("style");
+      styleEl.id = "liquid-gl-dynamic-styles";
+      document.head.appendChild(styleEl);
+      this._dynamicStyleSheet = styleEl.sheet;
+
+      this._snapshotResolution = Math.max(
+        0.1,
+        Math.min(3.0, snapshotResolution),
+      );
+      this._pendingReveal = [];
+
+      this._resizeCanvas();
+      this.captureSnapshot();
+
+      /* --------------------------------------------------
+       *  Dynamic media (video) support
+       * ------------------------------------------------*/
+      this._videoNodes = Array.from(
+        this.snapshotTarget.querySelectorAll("video"),
+      );
+      this._videoNodes = this._videoNodes.filter((v) => !this._isIgnored(v));
+      this._tmpCanvas = document.createElement("canvas");
+      this._tmpCtx = this._tmpCanvas.getContext("2d");
+
+      this._videoFrameState = new WeakMap();
+
+      this._videoAlphaState = new WeakMap();
+
+      this.canvas.style.opacity = "0";
+
+      this.useExternalTicker = false;
+
+      /* --------------------------------------------------
+       *  Inline worker for heavy dynamic nodes
+       * ------------------------------------------------*/
+      this._workerEnabled =
+        typeof OffscreenCanvas !== "undefined" &&
+        typeof Worker !== "undefined" &&
+        typeof ImageBitmap !== "undefined";
+
+      if (this._workerEnabled) {
+        const workerSrc = `
+          /* dynamic-element worker (runs in its own thread) */
+          self.onmessage = async (e) => {
+            const { id, width, height, snap, dyn } = e.data;
+            const off = new OffscreenCanvas(width, height);
+            const ctx = off.getContext('2d');
+
+            ctx.drawImage(snap, 0, 0, width, height);
+            ctx.drawImage(dyn, 0, 0, width, height);
+
+            const bmp = await off.transferToImageBitmap();
+            self.postMessage({ id, bmp }, [bmp]);
+          };
+        `;
+        const blob = new Blob([workerSrc], { type: "application/javascript" });
+        this._dynWorker = new Worker(URL.createObjectURL(blob), {
+          type: "module",
+        });
+
+        this._dynJobs = new Map();
+
+        this._dynWorker.onmessage = (e) => {
+          const { id, bmp } = e.data;
+          const meta = this._dynJobs.get(id);
+          if (!meta) return;
+          this._dynJobs.delete(id);
+
+          const { x, y } = meta;
+          if (!this.backend || !this.hasTexture) return;
+          this.backend.uploadRegion(x, y, bmp);
+        };
+      }
+    }
+
+    /* ----------------------------- */
+    async _selectBackend() {
+      const chain = ENGINE_CHAINS[this._engine] || ENGINE_CHAINS.auto;
+      let backend = null;
+
+      if (chain[0] === "webgpu") {
+        try {
+          backend = await WebGPUBackend.create(this.canvas);
+        } catch (e) {
+          backend = null;
+        }
+      }
+
+      if (!backend) {
+        const glChain = chain.filter((c) => c !== "webgpu");
+        if (glChain.length) {
+          try {
+            backend = new WebGLBackend(this.canvas, glChain);
+          } catch (e) {
+            backend = null;
+          }
+        }
+      }
+
+      this.backend = backend;
+
+      if (!backend) {
+        this._backendFailed = true;
+        console.warn(
+          "liquidGL: No GPU backend available – lenses will keep their original styles.",
+        );
+        return false;
+      }
+
+      const pending = this._pendingLensActivation.splice(0);
+      pending.forEach((ln) => ln._activate());
+      return true;
+    }
+
     /* ----------------------------- */
     _resizeCanvas() {
       const dpr = Math.min(2, window.devicePixelRatio || 1);
@@ -2184,13 +3127,19 @@ const liquidGL = (() => {
       this.canvas.height = innerHeight * dpr;
       this.canvas.style.width = `${innerWidth}px`;
       this.canvas.style.height = `${innerHeight}px`;
-      this.gl.viewport(0, 0, this.canvas.width, this.canvas.height);
+      if (this.backend) this.backend.resize();
     }
 
     /* ----------------------------- */
     async captureSnapshot() {
       if (this._capturing) return;
       this._capturing = true;
+
+      const ready = await this._backendReady;
+      if (!ready) {
+        this._capturing = false;
+        return false;
+      }
 
       const undos = [];
 
@@ -2202,7 +3151,7 @@ const liquidGL = (() => {
         try {
           const fullW = this.snapshotTarget.scrollWidth;
           const fullH = this.snapshotTarget.scrollHeight;
-          const maxTex = this.gl.getParameter(this.gl.MAX_TEXTURE_SIZE) || 8192;
+          const maxTex = (this.backend && this.backend.maxTextureSize) || 8192;
           const MAX_MOBILE_DIM = 4096;
           const isMobileSafari = /iPad|iPhone|iPod/.test(navigator.userAgent);
 
@@ -2335,29 +3284,15 @@ const liquidGL = (() => {
         return false;
       }
       this.staticSnapshotCanvas = srcCanvas;
-      const gl = this.gl;
-      if (!this.texture) this.texture = gl.createTexture();
-      gl.bindTexture(gl.TEXTURE_2D, this.texture);
-      gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
-      gl.texImage2D(
-        gl.TEXTURE_2D,
-        0,
-        gl.RGBA,
-        gl.RGBA,
-        gl.UNSIGNED_BYTE,
-        srcCanvas,
-      );
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      if (!this.backend || !this.backend.uploadSnapshot(srcCanvas)) {
+        return false;
+      }
 
+      this.hasTexture = true;
       this.textureWidth = srcCanvas.width;
       this.textureHeight = srcCanvas.height;
 
       if (this._videoFrameState) this._videoFrameState = new WeakMap();
-
-      this._vFboTexture = null;
 
       this.render();
 
@@ -2379,7 +3314,13 @@ const liquidGL = (() => {
         this.canvas.style.zIndex = maxZ - 1;
       }
 
-      if (!this.texture) {
+      if (this.backend) {
+        lens._activate();
+      } else {
+        this._pendingLensActivation.push(lens);
+      }
+
+      if (!this.hasTexture) {
         this._pendingReveal.push(lens);
       } else {
         lens._reveal();
@@ -2389,8 +3330,8 @@ const liquidGL = (() => {
 
     /* ----------------------------- */
     render() {
-      const gl = this.gl;
-      if (!this.texture) return;
+      const backend = this.backend;
+      if (!backend || !this.hasTexture) return;
 
       this.lenses.forEach((ln) => {
         if (ln._isSticky && !ln._mirrorActive) ln.updateMetrics();
@@ -2400,15 +3341,9 @@ const liquidGL = (() => {
         this._scrollUpdateCounter++;
       }
 
-      gl.clearColor(0, 0, 0, 0);
-      gl.clear(gl.COLOR_BUFFER_BIT);
-      gl.useProgram(this.program);
-      gl.activeTexture(gl.TEXTURE0);
-      gl.bindTexture(gl.TEXTURE_2D, this.texture);
-      gl.uniform1i(this.u.tex, 0);
-
       const time = (Date.now() - this.startTime) / 1000;
-      gl.uniform1f(this.u.time, time);
+
+      backend.beginFrame(this.canvas.width, this.canvas.height, time);
 
       this._updateDynamicVideos();
 
@@ -2423,6 +3358,8 @@ const liquidGL = (() => {
         }
         this._renderLens(lens);
       });
+
+      backend.endFrame();
 
       this.lenses.forEach((ln) => {
         if (ln._mirrorActive && ln._mirrorCtx) {
@@ -2439,6 +3376,7 @@ const liquidGL = (() => {
       });
 
       const dpr = Math.min(2, window.devicePixelRatio || 1);
+      const clearRects = [];
       this.lenses.forEach((ln) => {
         if (ln._mirrorActive && ln.rectPx) {
           const { left, top, width, height } = ln.rectPx;
@@ -2457,19 +3395,15 @@ const liquidGL = (() => {
             Math.round(height * dpr) + expand * 2,
           );
           if (w > 0 && h > 0) {
-            gl.enable(gl.SCISSOR_TEST);
-            gl.scissor(x, y, w, h);
-            gl.clearColor(0, 0, 0, 0);
-            gl.clear(gl.COLOR_BUFFER_BIT);
-            gl.disable(gl.SCISSOR_TEST);
+            clearRects.push({ x, y, w, h });
           }
         }
       });
+      backend.clearRegions(clearRects);
     }
 
     /* ----------------------------- */
     _renderLens(lens) {
-      const gl = this.gl;
       const rect = lens.rectPx;
       if (!rect) return;
 
@@ -2492,11 +3426,6 @@ const liquidGL = (() => {
       const h = Math.round(topPx + rect.height * dpr) - yTop;
       const y = this.canvas.height - (yTop + h);
 
-      gl.viewport(x, y, w, h);
-      gl.uniform2f(this.u.res, w, h);
-      gl.uniform2f(this.u.subpixel, leftPx - x, topPx - yTop);
-      gl.uniform2f(this.u.boxSize, rect.width * dpr, rect.height * dpr);
-
       const snapRect =
         this._frameSnapRect || this.snapshotTarget.getBoundingClientRect();
       const docX = rect.left - snapRect.left;
@@ -2505,22 +3434,6 @@ const liquidGL = (() => {
       const topUV = (docY * this.scaleFactor) / this.textureHeight;
       const wUV = (rect.width * this.scaleFactor) / this.textureWidth;
       const hUV = (rect.height * this.scaleFactor) / this.textureHeight;
-      gl.uniform4f(this.u.bounds, leftUV, topUV, wUV, hUV);
-
-      gl.uniform2f(
-        this.u.textureResolution,
-        this.textureWidth,
-        this.textureHeight,
-      );
-      gl.uniform1f(this.u.refraction, lens.options.refraction);
-      gl.uniform1f(this.u.aberration, lens.options.aberration || 0);
-      gl.uniform1f(this.u.bevelDepth, lens.options.bevelDepth);
-      gl.uniform1f(this.u.bevelWidth, lens.options.bevelWidth);
-      gl.uniform1f(this.u.frost, lens.options.frost);
-      gl.uniform1f(this.u.radius, lens.radiusGl);
-      gl.uniform1i(this.u.specular, lens.options.specular ? 1 : 0);
-      gl.uniform1f(this.u.revealProgress, lens._revealProgress || 1.0);
-      gl.uniform1i(this.u.revealType, lens.revealTypeIndex || 0);
 
       const mag = Math.max(
         0.001,
@@ -2529,12 +3442,32 @@ const liquidGL = (() => {
           lens.options.magnify !== undefined ? lens.options.magnify : 1.0,
         ),
       );
-      gl.uniform1f(this.u.magnify, mag);
 
-      gl.uniform1f(this.u.tiltX, lens.tiltX || 0);
-      gl.uniform1f(this.u.tiltY, lens.tiltY || 0);
-
-      gl.drawArrays(gl.TRIANGLES, 0, 6);
+      this.backend.drawLens(lens, {
+        x,
+        y,
+        w,
+        h,
+        subX: leftPx - x,
+        subY: topPx - yTop,
+        boxW: rect.width * dpr,
+        boxH: rect.height * dpr,
+        bounds: [leftUV, topUV, wUV, hUV],
+        texW: this.textureWidth,
+        texH: this.textureHeight,
+        refraction: lens.options.refraction,
+        aberration: lens.options.aberration || 0,
+        bevelDepth: lens.options.bevelDepth,
+        bevelWidth: lens.options.bevelWidth,
+        frost: lens.options.frost,
+        radius: lens.radiusGl,
+        specular: lens.options.specular ? 1 : 0,
+        revealProgress: lens._revealProgress || 1.0,
+        revealType: lens.revealTypeIndex || 0,
+        magnify: mag,
+        tiltX: lens.tiltX || 0,
+        tiltY: lens.tiltY || 0,
+      });
     }
 
     /* ----------------------------- */
@@ -2550,56 +3483,6 @@ const liquidGL = (() => {
       ctx.lineTo(0, radii.tl);
       ctx.arcTo(0, 0, radii.tl, 0, radii.tl);
       ctx.closePath();
-    }
-
-    _initVideoBlit() {
-      if (this._vBlitReady !== undefined) return this._vBlitReady;
-
-      const gl = this.gl;
-
-      const vs = `
-        attribute vec2 a_position;
-        varying vec2 v_uv;
-        void main(){
-          v_uv = (a_position + 1.0) * 0.5;
-          gl_Position = vec4(a_position, 0.0, 1.0);
-        }`;
-
-      const fs = `
-        precision mediump float;
-        varying vec2 v_uv;
-        uniform sampler2D u_src;
-        uniform vec4 u_srcRect;
-        void main(){
-          gl_FragColor = texture2D(u_src, u_srcRect.xy + v_uv * u_srcRect.zw);
-        }`;
-
-      const prog = createProgram(gl, vs, fs);
-      if (!prog) {
-        this._vBlitReady = false;
-        return false;
-      }
-
-      this._vProg = prog;
-      this._vPosLoc = gl.getAttribLocation(prog, "a_position");
-      this._vU = {
-        src: gl.getUniformLocation(prog, "u_src"),
-        srcRect: gl.getUniformLocation(prog, "u_srcRect"),
-      };
-
-      this._vTex = gl.createTexture();
-      gl.bindTexture(gl.TEXTURE_2D, this._vTex);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-      gl.bindTexture(gl.TEXTURE_2D, this.texture);
-
-      this._vFbo = gl.createFramebuffer();
-      this._vFboTexture = null;
-
-      this._vBlitReady = true;
-      return true;
     }
 
     _videoIsOpaque(vid) {
@@ -2636,92 +3519,15 @@ const liquidGL = (() => {
       return opaque;
     }
 
-    _blitVideoToTexture(vid, dstX, dstY, dstW, dstH, srcRect) {
-      const gl = this.gl;
-
-      gl.bindFramebuffer(gl.FRAMEBUFFER, this._vFbo);
-
-      if (this._vFboTexture !== this.texture) {
-        gl.framebufferTexture2D(
-          gl.FRAMEBUFFER,
-          gl.COLOR_ATTACHMENT0,
-          gl.TEXTURE_2D,
-          this.texture,
-          0,
-        );
-        if (
-          gl.checkFramebufferStatus(gl.FRAMEBUFFER) !== gl.FRAMEBUFFER_COMPLETE
-        ) {
-          gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-          this._vBlitReady = false;
-          return false;
-        }
-        this._vFboTexture = this.texture;
-      }
-
-      gl.activeTexture(gl.TEXTURE0);
-      gl.bindTexture(gl.TEXTURE_2D, this._vTex);
-      gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
-
-      try {
-        gl.texImage2D(
-          gl.TEXTURE_2D,
-          0,
-          gl.RGBA,
-          gl.RGBA,
-          gl.UNSIGNED_BYTE,
-          vid,
-        );
-      } catch (e) {
-        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-        this._restoreLensProgramState();
-        return false;
-      }
-
-      gl.useProgram(this._vProg);
-      gl.bindBuffer(gl.ARRAY_BUFFER, this._posBuf);
-      gl.enableVertexAttribArray(this._vPosLoc);
-      gl.vertexAttribPointer(this._vPosLoc, 2, gl.FLOAT, false, 0, 0);
-
-      gl.uniform1i(this._vU.src, 0);
-      gl.uniform4f(
-        this._vU.srcRect,
-        srcRect.u,
-        srcRect.v,
-        srcRect.uw,
-        srcRect.vh,
-      );
-
-      gl.viewport(dstX, dstY, dstW, dstH);
-      gl.drawArrays(gl.TRIANGLES, 0, 6);
-
-      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-      this._restoreLensProgramState();
-
-      return true;
-    }
-
-    _restoreLensProgramState() {
-      const gl = this.gl;
-      gl.useProgram(this.program);
-      gl.bindBuffer(gl.ARRAY_BUFFER, this._posBuf);
-      gl.enableVertexAttribArray(this._posLoc);
-      gl.vertexAttribPointer(this._posLoc, 2, gl.FLOAT, false, 0, 0);
-      gl.activeTexture(gl.TEXTURE0);
-      gl.bindTexture(gl.TEXTURE_2D, this.texture);
-      gl.uniform1i(this.u.tex, 0);
-    }
-
     /* ----------------------------- */
     _updateDynamicVideos() {
       if (this._isScrolling && this._scrollUpdateCounter % 2 !== 0) return;
       if (
-        !this.texture ||
+        !this.hasTexture ||
         !this.staticSnapshotCanvas ||
         !this._videoNodes.length
       )
         return;
-      const gl = this.gl;
 
       const snapRect = this.snapshotTarget.getBoundingClientRect();
 
@@ -2803,9 +3609,8 @@ const liquidGL = (() => {
 
         if (
           !isRounded &&
-          this._initVideoBlit() &&
           this._videoIsOpaque(vid) &&
-          this._blitVideoToTexture(vid, dstX, dstY, updW, updH, {
+          this.backend.blitVideo(vid, dstX, dstY, updW, updH, {
             u: srcX / drawW,
             v: srcY / drawH,
             uw: updW / drawW,
@@ -2856,25 +3661,14 @@ const liquidGL = (() => {
           return;
         }
 
-        gl.bindTexture(gl.TEXTURE_2D, this.texture);
-        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
-        gl.texSubImage2D(
-          gl.TEXTURE_2D,
-          0,
-          dstX,
-          dstY,
-          gl.RGBA,
-          gl.UNSIGNED_BYTE,
-          this._tmpCanvas,
-        );
+        this.backend.uploadRegion(dstX, dstY, this._tmpCanvas);
       });
     }
 
     /* ----------------------------- */
     _updateDynamicNodes() {
       if (this._isScrolling && this._scrollUpdateCounter % 2 !== 0) return;
-      const gl = this.gl;
-      if (!this.texture || !this._dynMeta) return;
+      if (!this.hasTexture || !this._dynMeta) return;
       const snapRect = this.snapshotTarget.getBoundingClientRect();
       const maxLensZ = this._getMaxLensZ();
 
@@ -2979,16 +3773,7 @@ const liquidGL = (() => {
                 w,
                 h,
               );
-              gl.bindTexture(gl.TEXTURE_2D, this.texture);
-              gl.texSubImage2D(
-                gl.TEXTURE_2D,
-                0,
-                x,
-                y,
-                gl.RGBA,
-                gl.UNSIGNED_BYTE,
-                eraseCanvas,
-              );
+              this.backend.uploadRegion(x, y, eraseCanvas);
             }
           }
 
@@ -3082,16 +3867,7 @@ const liquidGL = (() => {
           this._compositeCtx.drawImage(meta.lastCapture, 0, 0, drawW, drawH);
           this._compositeCtx.restore();
 
-          gl.bindTexture(gl.TEXTURE_2D, this.texture);
-          gl.texSubImage2D(
-            gl.TEXTURE_2D,
-            0,
-            dstX,
-            dstY,
-            gl.RGBA,
-            gl.UNSIGNED_BYTE,
-            compositeCanvas,
-          );
+          this.backend.uploadRegion(dstX, dstY, compositeCanvas);
 
           if (this._workerEnabled && meta._heavyAnim) {
             const jobId = `${Date.now()}_${Math.random()}`;
@@ -3401,6 +4177,13 @@ const liquidGL = (() => {
       this._revealProgress = this.revealTypeIndex === 0 ? 1 : 0;
       this.tiltX = 0;
       this.tiltY = 0;
+      this._activated = false;
+    }
+
+    /* ----------------------------- */
+    _activate() {
+      if (this._activated) return;
+      this._activated = true;
 
       this.originalShadow = this.el.style.boxShadow;
       this.originalOpacity = this.el.style.opacity;
@@ -3619,6 +4402,7 @@ const liquidGL = (() => {
 
     /* ----------------------------- */
     _reveal() {
+      if (!this._activated) return;
       if (this.revealTypeIndex === 0) {
         this.el.style.opacity = this.originalOpacity || 1;
         this.renderer.canvas.style.opacity = "1";
@@ -4071,342 +4855,6 @@ const liquidGL = (() => {
   }
 
   /* --------------------------------------------------
-   *  Helper GUI System
-   * ------------------------------------------------*/
-  let helperGUIs = [];
-  let lilGuiLoaded = false;
-  let lilGuiLoadPromise = null;
-
-  function loadLilGui() {
-    if (lilGuiLoaded) {
-      return Promise.resolve();
-    }
-    if (lilGuiLoadPromise) {
-      return lilGuiLoadPromise;
-    }
-
-    lilGuiLoadPromise = new Promise((resolve, reject) => {
-      if (typeof lil !== "undefined") {
-        lilGuiLoaded = true;
-        injectHelperStyles();
-        resolve();
-        return;
-      }
-
-      const script = document.createElement("script");
-      script.src =
-        "https://cdn.jsdelivr.net/npm/lil-gui@0.19.1/dist/lil-gui.umd.min.js";
-      script.integrity =
-        "sha384-2eNPNc7Cms+nVcpmQPotBpthLWCwjAGbkp0Y+3MUQqwPbmTpMFmbh2a230Gkns0x";
-      script.crossOrigin = "anonymous";
-      script.onload = () => {
-        lilGuiLoaded = true;
-        injectHelperStyles();
-        resolve();
-      };
-      script.onerror = () => {
-        reject(new Error("Failed to load lil-gui"));
-      };
-      document.head.appendChild(script);
-    });
-
-    return lilGuiLoadPromise;
-  }
-
-  function injectHelperStyles() {
-    if (document.getElementById("liquidgl-helper-styles")) return;
-
-    const style = document.createElement("style");
-    style.id = "liquidgl-helper-styles";
-    style.textContent = `
-      @media screen and (max-width: 768px) {
-        .lil-gui.root.liquidgl-helper {
-          width: 61vw;
-        }
-      }
-
-      .lil-gui.root.liquidgl-helper,
-      .lil-gui.liquidgl-helper .lil-gui {
-        --background-color: rgb(9 9 11 / 85%);
-        --widget-color: rgb(39 39 42 / 50%);
-        --hover-color: rgb(39 39 42 / 70%);
-        --focus-color: rgb(39 39 42 / 90%);
-        --number-color: #fafafa;
-        --string-color: #fafafa;
-        --font-size: 13px;
-        --input-font-size: 13px;
-        --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-        --font-family-mono: monospace;
-        --padding: 10px;
-        --spacing: 10px;
-        --widget-height: 28px;
-        --title-height: 28px;
-        --name-width: 45%;
-        --slider-knob-width: 4px;
-        --slider-input-width: 27%;
-        --color-input-width: 27%;
-        --slider-input-min-width: 45px;
-        --color-input-min-width: 45px;
-        --folder-indent: 8px;
-        --widget-padding: 0 10px;
-        --widget-border-radius: 4px;
-        --checkbox-size: 16px;
-        --scrollbar-width: 6px;
-      }
-
-      .lil-gui.root.liquidgl-helper {
-        border-radius: 12px !important;
-        border: 0.5px solid #1e1e20 !important;
-        backdrop-filter: blur(16px);
-        box-shadow: 0 4px 16px rgb(0 0 0 / 20%) !important;
-        position: fixed !important;
-        top: 1rem !important;
-        right: 1rem !important;
-        left: auto !important;
-        z-index: 999999999 !important;
-      }
-
-      .lil-gui.liquidgl-helper .title {
-        background: transparent;
-        border-bottom: 0.5px solid #1e1e20;
-        border-radius: 12px 12px 0 0 !important;
-      }
-
-      .lil-gui.liquidgl-helper .title button {
-        padding: 12px 16px !important;
-      }
-
-      .lil-gui.liquidgl-helper.closed .title {
-        border-radius: 12px !important;
-        border-bottom: none;
-      }
-
-      .lil-gui.liquidgl-helper .children {
-        border-top: 0.5px solid #1e1e20;
-      }
-
-      @media (max-width: 768px) {
-        .lil-gui.root.liquidgl-helper {
-          top: 1rem !important;
-          right: 1rem !important;
-        }
-      }
-    `;
-    document.head.appendChild(style);
-  }
-
-  function createHelperGUI(lenses, options, instanceIndex) {
-    if (typeof lil === "undefined") return;
-
-    const lensList = (Array.isArray(lenses) ? lenses : [lenses]).filter(
-      Boolean,
-    );
-    if (!lensList.length) return;
-
-    const gui = new lil.GUI({
-      title: `liquidGL Helper ${instanceIndex + 1}`,
-      closeFolders: true,
-    });
-    gui.domElement.classList.add("liquidgl-helper");
-    gui.$title.style.cursor = "default";
-
-    const topOffset = 1 + instanceIndex * 3;
-    gui.domElement.style.top = `${topOffset}rem`;
-
-    const state = lensList[0].options;
-
-    const applyToLenses = (key, value) => {
-      lensList.forEach((ln) => {
-        if (!ln) return;
-        ln.options[key] = value;
-        if (key === "shadow") ln.setShadow(value);
-        if (key === "tilt") ln.setTilt(value);
-      });
-    };
-
-    const refractionFolder = gui.addFolder("Refraction");
-    refractionFolder
-      .add(state, "refraction", 0, 0.1, 0.001)
-      .name("Refraction")
-      .onChange((v) => applyToLenses("refraction", v));
-    refractionFolder
-      .add(state, "aberration", 0, 1, 0.01)
-      .name("Aberration")
-      .onChange((v) => applyToLenses("aberration", v));
-    refractionFolder
-      .add(state, "bevelDepth", 0, 0.2, 0.001)
-      .name("Bevel Depth")
-      .onChange((v) => applyToLenses("bevelDepth", v));
-    refractionFolder
-      .add(state, "bevelWidth", 0, 0.5, 0.001)
-      .name("Bevel Width")
-      .onChange((v) => applyToLenses("bevelWidth", v));
-    refractionFolder
-      .add(state, "magnify", 1, 5, 0.1)
-      .name("Magnify")
-      .onChange((v) => applyToLenses("magnify", v));
-
-    const surfaceFolder = gui.addFolder("Surface");
-    surfaceFolder
-      .add(state, "frost", 0, 10, 0.1)
-      .name("Frost")
-      .onChange((v) => applyToLenses("frost", v));
-    surfaceFolder
-      .add(state, "specular")
-      .name("Specular")
-      .onChange((v) => applyToLenses("specular", v));
-    surfaceFolder
-      .add(state, "shadow")
-      .name("Shadow")
-      .onChange((v) => applyToLenses("shadow", v));
-
-    const tiltFolder = gui.addFolder("Tilt");
-    tiltFolder
-      .add(state, "tilt")
-      .name("Tilt")
-      .onChange((v) => applyToLenses("tilt", v));
-    tiltFolder
-      .add(state, "tiltFactor", 0, 25, 0.1)
-      .name("Tilt Factor")
-      .onChange((v) => applyToLenses("tiltFactor", v));
-    tiltFolder
-      .add(state, "tiltEase", 0, 1000, 10)
-      .name("Tilt Ease")
-      .onChange((v) => applyToLenses("tiltEase", v));
-
-    const initFolder = gui.addFolder("Initialisation");
-    const reinitState = {
-      reveal: options.reveal,
-      resolution: options.resolution,
-    };
-
-    initFolder
-      .add(reinitState, "reveal", ["none", "fade"])
-      .name("Reveal")
-      .onFinishChange((value) => {
-        if (
-          confirm(
-            "Changing reveal applies on the next initialisation. Continue?",
-          )
-        ) {
-          applyToLenses("reveal", value);
-        } else {
-          reinitState.reveal = options.reveal;
-          gui.controllersRecursive().forEach((c) => c.updateDisplay());
-        }
-      });
-
-    initFolder
-      .add(reinitState, "resolution", 0.5, 3, 0.25)
-      .name("Resolution")
-      .onFinishChange((value) => {
-        if (
-          confirm(
-            "Changing resolution re-captures the page snapshot. Continue?",
-          )
-        ) {
-          applyToLenses("resolution", value);
-          const renderer = window.__liquidGLRenderer__;
-          if (renderer) {
-            renderer._snapshotResolution = Math.max(0.1, Math.min(3.0, value));
-            renderer.captureSnapshot();
-          }
-        } else {
-          reinitState.resolution = options.resolution;
-          gui.controllersRecursive().forEach((c) => c.updateDisplay());
-        }
-      });
-
-    const copyButton = {
-      copySettings: () => {
-        const code = generateInitCode(options);
-        const controller = gui.controllers.find(
-          (c) => c.property === "copySettings",
-        );
-
-        if (!controller) return;
-
-        const originalName = controller._name;
-        controller.disable();
-        controller.name("✓ Copied");
-
-        const copySuccess = () => {
-          setTimeout(() => {
-            controller.name(originalName);
-            controller.enable();
-          }, 1500);
-        };
-
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-          navigator.clipboard
-            .writeText(code)
-            .then(() => {
-              copySuccess();
-            })
-            .catch((err) => {
-              console.error("Clipboard error:", err);
-              fallbackCopy(code);
-            });
-        } else {
-          fallbackCopy(code);
-        }
-
-        function fallbackCopy(text) {
-          const textarea = document.createElement("textarea");
-          textarea.value = text;
-          textarea.style.position = "fixed";
-          textarea.style.opacity = "0";
-          document.body.appendChild(textarea);
-          textarea.select();
-          try {
-            document.execCommand("copy");
-            copySuccess();
-          } catch (err) {
-            console.error("Copy failed:", err);
-            controller.name(originalName);
-            controller.enable();
-            prompt("Copy this code manually:", text);
-          }
-          document.body.removeChild(textarea);
-        }
-      },
-    };
-    gui.add(copyButton, "copySettings").name("Copy settings");
-
-    refractionFolder.close();
-    surfaceFolder.close();
-    tiltFolder.close();
-    initFolder.close();
-
-    helperGUIs.push({ gui, lenses: lensList });
-    return gui;
-  }
-
-  function generateInitCode(options) {
-    const lines = ["liquidGL({"];
-
-    lines.push(`  target: "${options.target}",`);
-    lines.push(`  snapshot: "${options.snapshot}",`);
-    lines.push(`  resolution: ${options.resolution},`);
-    lines.push(`  refraction: ${options.refraction},`);
-    lines.push(`  aberration: ${options.aberration},`);
-    lines.push(`  bevelDepth: ${options.bevelDepth},`);
-    lines.push(`  bevelWidth: ${options.bevelWidth},`);
-    lines.push(`  frost: ${options.frost},`);
-    lines.push(`  shadow: ${options.shadow},`);
-    lines.push(`  specular: ${options.specular},`);
-    lines.push(`  reveal: "${options.reveal}",`);
-    lines.push(`  tilt: ${options.tilt},`);
-    lines.push(`  tiltFactor: ${options.tiltFactor},`);
-    lines.push(`  tiltEase: ${options.tiltEase},`);
-    lines.push(`  magnify: ${options.magnify},`);
-    lines.push(`  helper: false,`);
-    lines.push(`});`);
-
-    return lines.join("\n");
-  }
-
-  /* --------------------------------------------------
    *  Public API
    * ------------------------------------------------*/
   window.liquidGL = function (userOptions = {}) {
@@ -4414,6 +4862,7 @@ const liquidGL = (() => {
       target: ".liquidGL",
       snapshot: "body",
       resolution: 2.0,
+      engine: "auto",
       refraction: 0.01,
       aberration: 0,
       bevelDepth: 0.08,
@@ -4431,20 +4880,40 @@ const liquidGL = (() => {
     };
     const options = { ...defaults, ...userOptions };
 
-    if (typeof window.__liquidGLNoWebGL__ === "undefined") {
-      const testCanvas = document.createElement("canvas");
-      const testCtx =
-        testCanvas.getContext("webgl2") ||
-        testCanvas.getContext("webgl") ||
-        testCanvas.getContext("experimental-webgl");
-      window.__liquidGLNoWebGL__ = !testCtx;
+    const engineRaw =
+      options.engine !== "auto"
+        ? options.engine
+        : new URLSearchParams(window.location.search).get("liquidGL-engine") ||
+          "auto";
+    const engineKey = String(engineRaw).toLowerCase();
+    if (ENGINE_CHAINS[engineKey]) {
+      options.engine = engineKey;
+    } else {
+      console.warn(`liquidGL: Unknown engine "${engineRaw}" – using "auto".`);
+      options.engine = "auto";
     }
 
-    const noWebGL = window.__liquidGLNoWebGL__;
+    const chain = ENGINE_CHAINS[options.engine];
+    const hasWebGPU =
+      chain[0] === "webgpu" &&
+      typeof navigator !== "undefined" &&
+      "gpu" in navigator;
+    let hasWebGL = false;
+    const glChain = chain.filter((c) => c !== "webgpu");
+    if (glChain.length) {
+      const testCanvas = document.createElement("canvas");
+      for (const name of glChain) {
+        if (testCanvas.getContext(name)) {
+          hasWebGL = true;
+          break;
+        }
+      }
+    }
+    const noGPU = !hasWebGPU && !hasWebGL;
 
-    if (noWebGL) {
+    if (window.__liquidGLNoWebGL__ === true || noGPU) {
       console.warn(
-        "liquidGL: WebGL not available – falling back to CSS backdrop-filter.",
+        "liquidGL: WebGPU/WebGL not available – falling back to CSS backdrop-filter.",
       );
       const fallbackNodes = document.querySelectorAll(options.target);
       fallbackNodes.forEach((node) => {
@@ -4461,7 +4930,11 @@ const liquidGL = (() => {
 
     let renderer = window.__liquidGLRenderer__;
     if (!renderer) {
-      renderer = new liquidGLRenderer(options.snapshot, options.resolution);
+      renderer = new liquidGLRenderer(
+        options.snapshot,
+        options.resolution,
+        options.engine,
+      );
       window.__liquidGLRenderer__ = renderer;
     }
 
@@ -4486,14 +4959,13 @@ const liquidGL = (() => {
     }
 
     if (options.helper) {
-      loadLilGui()
-        .then(() => {
-          const instanceIndex = helperGUIs.length;
-          createHelperGUI(instances, options, instanceIndex);
-        })
-        .catch((err) => {
-          console.error("liquidGL: Failed to load helper GUI:", err);
-        });
+      if (typeof window.__liquidGLHelper__ === "function") {
+        window.__liquidGLHelper__(instances, options);
+      } else {
+        console.error(
+          "liquidGL Helper Not Found - ensure liquidGL-helper.js is available in your project",
+        );
+      }
     }
 
     return instances.length === 1 ? instances[0] : instances;
@@ -4598,6 +5070,7 @@ const liquidGL = (() => {
 
     return { lenis, locomotiveScroll: loco };
   };
+
   return window.liquidGL;
 })();
 

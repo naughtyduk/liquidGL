@@ -1,7 +1,7 @@
 {
   "name": "liquid-gl",
-  "version": "2.1.1",
-  "description": "Liquid Glass - Powered by WebGL.",
+  "version": "2.2.0",
+  "description": "Liquid Glass - Powered by WebGPU/WebGL.",
   "type": "module",
   "main": "./liquidGL.js",
   "module": "./liquidGL.js",
@@ -9,10 +9,15 @@
     ".": {
       "import": "./liquidGL.js",
       "default": "./liquidGL.js"
+    },
+    "./liquidGL-helper.js": {
+      "import": "./liquidGL-helper.js",
+      "default": "./liquidGL-helper.js"
     }
   },
   "files": [
     "liquidGL.js",
+    "liquidGL-helper.js",
     "README.md",
     "LICENSE"
   ],

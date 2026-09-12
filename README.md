@@ -1,8 +1,8 @@
-# liquidGL – Liquid Glass - Powered by WebGL
+# liquidGL – Liquid Glass - Powered by WebGPU/WebGL
 
 <a href="https://liquidgl.naughtyduk.com"><img src="/assets/liquidGlass-promo.gif" alt="liquidGL" style="width: 100%"/></a>
 
-### v2.1.1
+### v2.2.0
 
 > [!NOTE]
 > `liquidGL` is now available on npm: `npm install liquid-gl`. The `package/` directory contains the [npm package](https://www.npmjs.com/package/liquid-gl) source code, and is not required when using the CDN/browser script.
@@ -16,10 +16,8 @@
 > | `html2canvas` | 86.3 ms | 85.3 ms | 134.8 ms | 16.2 ms            |
 >
 > Measured over 7 alternating runs of the full home page at `resolution: 2` (2880×10036 output), Chrome 150.
->
-> **v2.0.0 changed tilt behaviour.** The tilt interaction now eases symmetrically over the new `tiltEase` option (default `400`ms) in both directions, replacing the previous hard-coded `0.12s` ease-in and `0.4s` ease-out. If you depended on the old timing, set `tiltEase` explicitly. All other defaults are unchanged and existing configurations render identically.
 
-`liquidGL` turns any fixed or sticky-positioned element into a perfectly refracted, glossy "glass pane" rendered in WebGL.
+`liquidGL` turns any fixed or sticky-positioned element into a perfectly refracted, glossy "glass pane" rendered in WebGPU (with automatic fallback to WebGL).
 
 <a href="https://liquidgl.naughtyduk.com" target="_blank" rel="noopener noreferrer"><strong>TRY IT OUT</strong></a>
 
@@ -30,6 +28,10 @@
 ## What's New
 
 **Features**
+
+- **2.2.0 - WebGPU rendering** — `liquidGL` now renders with WebGPU where available, with an automatic fallback chain of WebGPU → WebGL2 → WebGL1 → CSS `backdrop-filter`. Nothing to configure, the chain is fully automatic. Choose where the chain starts with the new `engine` option (`'auto'`, `'webgpu'`, `'webgl2'`, `'webgl'`), or test quickly via the URL parameter `?liquidGL-engine=webgl2`.
+
+- **2.2.0 - Helper GUI is now a separate file** — the dev GUI no longer ships in the main bundle. Load `liquidGL-helper.js` alongside `liquidGL.js` (development only) to keep using `helper: true`. If the file is missing you'll get a console error and everything else works as normal.
 
 - **2.1.0 - Helper GUI** — A helper GUI is now available to adjust the liquidGL options in real-time during development, helping you to achieve the perfect aesthetic. To enable it, set `helper: true` in the options object when calling `liquidGL()`.
 
@@ -64,12 +66,13 @@
 
 ## Overview
 
-`liquidGL` recreates Apple's "Liquid Glass" aesthetic in the browser with an ultra-light WebGL shader. It turns any DOM element into a beautiful, refracting glass pane. To overcome WebGL's security limitations on reading live screen pixels, `liquidGL` uses an innovative offscreen rendering technique. This allows it to refract dynamic content like videos, text animations, and more in real-time, delivering a smooth and interactive experience.
+`liquidGL` recreates Apple's "Liquid Glass" aesthetic in the browser with an ultra-light WebGPU/WebGL shader. It turns any DOM element into a beautiful, refracting glass pane. To overcome WebGL's security limitations on reading live screen pixels, `liquidGL` uses an innovative offscreen rendering technique. This allows it to refract dynamic content like videos, text animations, and more in real-time, delivering a smooth and interactive experience.
 
 ### Key Features
 
 | Feature                                | Supported | Feature                          | Supported |
 | :------------------------------------- | :-------: | :------------------------------- | :-------: |
+| WebGPU Rendering `[NEW]`               |    ✅     | Helper GUI `[NEW]`               |    ✅     |
 | Real-time Refraction (static content)  |    ✅     | Magnification Control            |    ✅     |
 | Real-time Refraction (video)           |    ✅     | Dynamic Element Support          |    ✅     |
 | Real-time Refraction (text animations) |    ✅     | GSAP-Ready Animations            |    ✅     |
@@ -90,6 +93,9 @@ Add the following script before you initialise `liquidGL()` (normally at the end
 ```html
 <!-- liquidGL.js – the library itself -->
 <script src="/scripts/liquidGL.js" defer></script>
+
+<!-- Optional: dev helper GUI for `helper: true` (development only) -->
+<script src="/scripts/liquidGL-helper.js" defer></script>
 ```
 
 > `liquidGL` has no runtime dependencies. The high-resolution snapshot of the page background that it refracts is produced by its own built-in rasteriser.
@@ -214,6 +220,7 @@ liquidGL.registerDynamic(mySplitText.lines); // Pass the array of line elements
 | `target`     | string   | `'.liquidGL'` | **Required.** CSS selector for the element(s) to glassify.                                                                                                            |
 | `snapshot`   | string   | `'body'`      | CSS selector for the element to snapshot.                                                                                                                             |
 | `resolution` | number   | `2.0`         | Resolution of the background snapshot (clamped 0.1–3.0). Higher is sharper but uses more memory.                                                                      |
+| `engine`     | string   | `'auto'`      | Render backend chain: `'auto'` (WebGPU → WebGL2 → WebGL1 → CSS), `'webgpu'` (WebGPU → CSS), `'webgl2'` (WebGL2 → WebGL1 → CSS) or `'webgl'` (WebGL1 → CSS).           |
 | `refraction` | number   | `0.01`        | Base refraction offset applied across the pane (0–1).                                                                                                                 |
 | `aberration` | number   | `0`           | Chromatic aberration strength (0–1). Scales with the refraction offset, so dispersion is strongest at the bevel. `0` disables it and skips the extra texture samples. |
 | `bevelDepth` | number   | `0.08`        | Additional refraction on the edge to simulate depth (0–1).                                                                                                            |
@@ -226,7 +233,7 @@ liquidGL.registerDynamic(mySplitText.lines); // Pass the array of line elements
 | `tiltFactor` | number   | `5`           | Depth of the tilt in degrees (0–25 recommended).                                                                                                                      |
 | `tiltEase`   | number   | `400`         | Duration in ms for the tilt to settle, applied symmetrically on hover-in and hover-out. `0` applies the tilt instantly.                                               |
 | `magnify`    | number   | `1`           | Magnification factor of the lens (clamped 0.001–3.0). `1` is no magnification.                                                                                        |
-| `helper`     | boolean  | `false`       | Loads the helper GUI for live tweaking of the liquidGL options.                                                                                                       |
+| `helper`     | boolean  | `false`       | Loads the helper GUI for live tweaking of the liquidGL options. Requires `liquidGL-helper.js` to be loaded; logs a console error if missing.                          |
 | `on.init`    | function | `—`           | Callback that runs once the first render completes. Receives the lens instance.                                                                                       |
 
 > The `target` parameter is required; all others are optional.
@@ -252,7 +259,7 @@ Below are some ready-made configurations you can copy-paste. Feel free to tweak 
 | Question                                                                 | Answer                                                                                                                                                                                                                                                                                                                                                                                                         |
 | :----------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Is there a resize handler?                                               | Yes resize is handled in the library and debounced to 250ms for performance.                                                                                                                                                                                                                                                                                                                                   |
-| Does the effect work on mobile?                                          | Yes the library handles all 3 versions of WebGL and provides a frosted CSS `backdrop-filter` as a backup for older devices.                                                                                                                                                                                                                                                                                    |
+| Does the effect work on mobile?                                          | Yes the library uses WebGPU where available, falls back through WebGL2 and WebGL1, and provides a frosted CSS `backdrop-filter` as a backup for older devices.                                                                                                                                                                                                                                                 |
 | I have a preloader, how should I initialise `liquidGL()`?                | Add the `data-liquid-ignore` attribute to your preloader's top-level container to exclude it from the snapshot. You can then call `liquidGL()` inside a `DOMContentLoaded` listener as you normally would.                                                                                                                                                                                                     |
 | What is the correct way to use `liquidGL` with page animations?          | Lets say you have a preloader, above the fold intro animations and scroll animations on your page. You would:<br><br>1) set the `data-liquid-ignore` attribute on your preloader<br>2) animate your preloader and set up your initial animation states<br>3) then call `liquidGL();`<br>4) optionally, in the `on.init();` callback, you can run post snapshot scripts, such as animating the `target` element |
 | Can I use `liquidGL` on multiple elements?                               | Yes, any element which has the class declared as your `target` will be glassified. Note **all elements must use the same `z-index`** due to shared canvas optimisations, if you use different `z-index` values for multiple targets, the highest value will be used by `liquidGL`.                                                                                                                             |
@@ -276,7 +283,7 @@ Below are some ready-made configurations you can copy-paste. Feel free to tweak 
 
 ## Browser Support
 
-The `liquidGL` library is compatible with all WebGL enabled browsers on desktop, tablet and mobile devices.
+The `liquidGL` library is compatible with all modern browsers on desktop, tablet and mobile devices — WebGPU is used when available, with automatic fallback to WebGL (WebGL2 → WebGL1).
 
 > [!NOTE]  
 > Performance varies between browsers, specifically Safari can be unstable when the liquid element(s) are more than 50% of the viewport width or height. Practical use issues are rare, but make sure to test on your target devices thoroughly.
