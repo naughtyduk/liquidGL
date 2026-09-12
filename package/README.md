@@ -2,7 +2,7 @@
 
 <a href="https://liquidgl.naughtyduk.com"><img src="https://raw.githubusercontent.com/naughtyduk/liquidGL/main/assets/liquidGL-npm-preview.gif" alt="liquidGL" width="100%" height="auto"/></a>
 
-### v2.1.0
+### v2.1.1
 
 > [!NOTE]
 > `liquidGL` is free to use for both non-commercial and commercial purposes.
