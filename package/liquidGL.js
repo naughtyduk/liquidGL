@@ -2064,6 +2064,8 @@ const liquidGL = (() => {
           vec2 texel = 1.0 / u_textureResolution;
           vec4 refrCol;
 
+          vec2 chroma = offset * u_aberration;
+
           if (u_frost > 0.0) {
               float radius = u_frost * 4.0;
               vec4 sum = vec4(0.0);
@@ -2072,8 +2074,15 @@ const liquidGL = (() => {
               for (int i = 0; i < SAMPLES; i++) {
                   float angle = random(v_uv + float(i)) * 6.283185;
                   float dist = sqrt(random(v_uv - float(i))) * radius;
-                  vec2 offset = vec2(cos(angle), sin(angle)) * texel * dist;
-                  sum += texture2D(u_tex, sampleUV + offset);
+                  vec2 foff = vec2(cos(angle), sin(angle)) * texel * dist;
+                  if (u_aberration > 0.0) {
+                      sum.r += texture2D(u_tex, sampleUV + foff - chroma).r;
+                      sum.g += texture2D(u_tex, sampleUV + foff).g;
+                      sum.b += texture2D(u_tex, sampleUV + foff + chroma).b;
+                      sum.a += texture2D(u_tex, sampleUV + foff).a;
+                  } else {
+                      sum += texture2D(u_tex, sampleUV + foff);
+                  }
               }
               refrCol = sum / float(SAMPLES);
           } else {
@@ -2083,12 +2092,11 @@ const liquidGL = (() => {
               refrCol += texture2D(u_tex, sampleUV + vec2(0.0,  texel.y));
               refrCol += texture2D(u_tex, sampleUV + vec2(0.0, -texel.y));
               refrCol /= 5.0;
-          }
 
-          if (u_aberration > 0.0) {
-              vec2 chroma = offset * u_aberration;
-              refrCol.r = texture2D(u_tex, sampleUV - chroma).r;
-              refrCol.b = texture2D(u_tex, sampleUV + chroma).b;
+              if (u_aberration > 0.0) {
+                  refrCol.r = texture2D(u_tex, sampleUV - chroma).r;
+                  refrCol.b = texture2D(u_tex, sampleUV + chroma).b;
+              }
           }
 
           if (refrCol.a < 0.1) {
