@@ -2,7 +2,7 @@
 
 <a href="https://liquidgl.naughtyduk.com"><img src="/assets/liquidGlass-promo.gif" alt="liquidGL" style="width: 100%"/></a>
 
-### v2.2.3
+### v2.2.4
 
 > [!NOTE]
 > `liquidGL` is now available on npm: `npm install liquid-gl`. The `package/` directory contains the [npm package](https://www.npmjs.com/package/liquid-gl) source code, and is not required when using the CDN/browser script.
@@ -28,6 +28,8 @@
 ## What's New
 
 **Features**
+
+- **2.2.4 - HD Glass on Mobile** — Snapshot capture is no longer hard capped by the device's screen resolution, and is instead capped by the GPU texture limit set by the browser, allowing for higher quality glass on mobile devices.
 
 - **2.2.0 - WebGPU rendering** — `liquidGL` now renders with WebGPU where available, with an automatic fallback chain of WebGPU → WebGL2 → WebGL1 → CSS `backdrop-filter`. Nothing to configure, the chain is fully automatic. Choose where the chain starts with the new `engine` option (`'auto'`, `'webgpu'`, `'webgl2'`, `'webgl'`), or test quickly via the URL parameter `?liquidGL-engine=webgl2`.
 

@@ -2,12 +2,12 @@
 
 <a href="https://liquidgl.naughtyduk.com"><img src="https://raw.githubusercontent.com/naughtyduk/liquidGL/main/assets/liquidGL-npm-preview.gif" alt="liquidGL" width="100%" height="auto"/></a>
 
-### v2.2.3
+### v2.2.4
 
-> [!NOTE]
+> **NOTE**
 > `liquidGL` is free to use for both non-commercial and commercial purposes.
 
-> [!WARNING]
+> **WARNING**
 > **v2.0.1 changed snapshot capture.** `liquidGL` now snapshots the page with its own built-in rasteriser, so `html2canvas` is no longer a dependency. Nothing needs to change in your code.
 >
 > | Rasteriser    | Median  | Min     | Max      | Worst single stall |
@@ -28,6 +28,8 @@
 ## What's New
 
 **Features**
+
+- **2.2.4 - HD Glass on Mobile** — Snapshot capture is no longer hard capped by the device's screen resolution, and is instead capped by the GPU texture limit set by the browser, allowing for higher quality glass on mobile devices.
 
 - **2.2.0 - WebGPU rendering** — `liquidGL` now renders with WebGPU where available, with an automatic fallback chain of WebGPU → WebGL2 → WebGL1 → CSS `backdrop-filter`. Nothing to configure, the chain is fully automatic. Choose where the chain starts with the new `engine` option (`'auto'`, `'webgpu'`, `'webgl2'`, `'webgl'`), or test quickly via the URL parameter `?liquidGL-engine=webgl2`.
 

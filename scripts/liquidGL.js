@@ -4,7 +4,7 @@
  *
  * Author: NaughtyDuk© – https://liquidgl.naughtyduk.com
  * Licence: MIT
- * Version: v2.2.3
+ * Version: v2.2.4
  */
 
 (() => {
@@ -2822,7 +2822,7 @@ fn fs() -> @location(0) vec4<f32> {
 
     drawLens(lens, p) {
       const cx = Math.max(0, p.x);
-      const cy = Math.max(0, p.y);
+      const cy = Math.max(0, this.canvas.height - p.y - p.h);
       const cw = Math.min(this.canvas.width - cx, p.w);
       const ch = Math.min(this.canvas.height - cy, p.h);
       if (cw <= 0 || ch <= 0) return;
@@ -2914,7 +2914,10 @@ fn fs() -> @location(0) vec4<f32> {
       pass.setVertexBuffer(0, this._vb);
       rects.forEach(({ x, y, w, h }) => {
         const cx = Math.max(0, Math.min(this.canvas.width, x));
-        const cy = Math.max(0, Math.min(this.canvas.height, y));
+        const cy = Math.max(
+          0,
+          Math.min(this.canvas.height, this.canvas.height - y - h),
+        );
         const cw = Math.max(0, Math.min(this.canvas.width - cx, w));
         const ch = Math.max(0, Math.min(this.canvas.height - cy, h));
         if (cw > 0 && ch > 0) {
@@ -3162,8 +3165,6 @@ fn fs() -> @location(0) vec4<f32> {
           const fullW = this.snapshotTarget.scrollWidth;
           const fullH = this.snapshotTarget.scrollHeight;
           const maxTex = (this.backend && this.backend.maxTextureSize) || 8192;
-          const MAX_MOBILE_DIM = 4096;
-          const isMobileSafari = /iPad|iPhone|iPod/.test(navigator.userAgent);
 
           let scale = Math.min(
             this._snapshotResolution,
@@ -3171,12 +3172,7 @@ fn fs() -> @location(0) vec4<f32> {
             maxTex / fullH,
           );
 
-          if (isMobileSafari) {
-            const over = (Math.max(fullW, fullH) * scale) / MAX_MOBILE_DIM;
-            if (over > 1) scale = scale / over;
-          }
-
-          const maxArea = isMobileSafari ? 4096 * 4096 : 16384 * 16384;
+          const maxArea = maxTex * maxTex;
           if (fullW * fullH * scale * scale > maxArea) {
             scale = Math.sqrt(maxArea / (fullW * fullH));
             console.warn(
@@ -4252,16 +4248,24 @@ fn fs() -> @location(0) vec4<f32> {
           ? this._baseRect
           : this.el.getBoundingClientRect();
 
+      const vv = window.visualViewport;
+      const vpX = vv && Math.abs(vv.scale - 1) < 0.01 ? vv.offsetLeft : 0;
+      const vpY = vv && Math.abs(vv.scale - 1) < 0.01 ? vv.offsetTop : 0;
+
       const prev = this.rectPx;
       if (
         prev &&
         rect.left === prev.left &&
         rect.top === prev.top &&
         rect.width === prev.width &&
-        rect.height === prev.height
+        rect.height === prev.height &&
+        vpX === this._vpOffsetX &&
+        vpY === this._vpOffsetY
       ) {
         return;
       }
+      this._vpOffsetX = vpX;
+      this._vpOffsetY = vpY;
 
       this.rectPx = {
         left: rect.left,
@@ -4379,8 +4383,11 @@ fn fs() -> @location(0) vec4<f32> {
           this._mirrorActive && this._baseRect
             ? this._baseRect
             : this.el.getBoundingClientRect();
-        this._shadowEl.style.left = `${r.left}px`;
-        this._shadowEl.style.top = `${r.top}px`;
+        const vv = window.visualViewport;
+        const ox = vv && Math.abs(vv.scale - 1) < 0.01 ? vv.offsetLeft : 0;
+        const oy = vv && Math.abs(vv.scale - 1) < 0.01 ? vv.offsetTop : 0;
+        this._shadowEl.style.left = `${r.left + ox}px`;
+        this._shadowEl.style.top = `${r.top + oy}px`;
         this._shadowEl.style.width = `${r.width}px`;
         this._shadowEl.style.height = `${r.height}px`;
         this._shadowEl.style.borderRadius = `${this.radiusCss}px`;
@@ -4397,7 +4404,7 @@ fn fs() -> @location(0) vec4<f32> {
             zIndex: effectiveZ(this.el) - 2,
             boxShadow: SHADOW_VAL,
             willChange: "transform, width, height",
-            opacity: this.revealTypeIndex === 1 ? 0 : 1,
+            opacity: this._revealProgress ?? 1,
           });
           document.body.appendChild(this._shadowEl);
 

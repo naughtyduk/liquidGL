@@ -4,7 +4,7 @@
  *
  * Author: NaughtyDuk© – https://liquidgl.naughtyduk.com
  * Licence: MIT
- * Version: v2.2.3
+ * Version: v2.2.4
  */
 
 (() => {
@@ -127,8 +127,8 @@
 
       @media (max-width: 768px) {
         .lil-gui.root.liquidgl-helper {
-          top: 1rem !important;
-          right: 1rem !important;
+          top: 0.5rem !important;
+          right: 0.5rem !important;
         }
       }
     `;
@@ -149,6 +149,7 @@
     });
     gui.domElement.classList.add("liquidgl-helper");
     gui.$title.style.cursor = "default";
+    gui.close();
 
     const topOffset = 1 + instanceIndex * 3;
     gui.domElement.style.top = `${topOffset}rem`;
