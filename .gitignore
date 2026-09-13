@@ -4,3 +4,8 @@
 */.DS_Store
 **/.DS_Store 
 *.xmp
+
+# Local dev tooling (dev server + Cloudflare tunnel)
+/dev-tunnel.js
+/package.json
+/node_modules/

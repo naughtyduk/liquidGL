@@ -4,7 +4,7 @@
  *
  * Author: NaughtyDuk© – https://liquidgl.naughtyduk.com
  * Licence: MIT
- * Version: v2.2.2
+ * Version: v2.2.3
  */
 
 (() => {
@@ -2958,6 +2958,7 @@ fn fs() -> @location(0) vec4<f32> {
       if (!this.snapshotTarget) this.snapshotTarget = document.body;
 
       this._isScrolling = false;
+      this._pendingViewportResize = false;
       let lastScrollY = window.scrollY;
       let scrollTimeout;
       const scrollCheck = () => {
@@ -2967,6 +2968,10 @@ fn fs() -> @location(0) vec4<f32> {
           clearTimeout(scrollTimeout);
           scrollTimeout = setTimeout(() => {
             this._isScrolling = false;
+            if (this._pendingViewportResize) {
+              this._pendingViewportResize = false;
+              onResize();
+            }
           }, 200);
         }
         requestAnimationFrame(scrollCheck);
@@ -2974,7 +2979,12 @@ fn fs() -> @location(0) vec4<f32> {
       requestAnimationFrame(scrollCheck);
 
       const onResize = debounce(() => {
-        if (this._capturing || this._isScrolling) return;
+        if (this._capturing) return;
+        if (this._isScrolling) {
+          this._pendingViewportResize = true;
+          return;
+        }
+        this._pendingViewportResize = false;
 
         if (window.visualViewport && window.visualViewport.scale !== 1) {
           return;
@@ -3332,6 +3342,13 @@ fn fs() -> @location(0) vec4<f32> {
     render() {
       const backend = this.backend;
       if (!backend || !this.hasTexture) return;
+
+      const dprNow = Math.min(2, window.devicePixelRatio || 1);
+      const bufW = Math.trunc(innerWidth * dprNow);
+      const bufH = Math.trunc(innerHeight * dprNow);
+      if (this.canvas.width !== bufW || this.canvas.height !== bufH) {
+        this._resizeCanvas();
+      }
 
       this.lenses.forEach((ln) => {
         if (ln._isSticky && !ln._mirrorActive) ln.updateMetrics();
