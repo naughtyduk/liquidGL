@@ -1,6 +1,6 @@
 # liquidGL – Liquid Glass - Powered by WebGPU/WebGL
 
-<a href="https://liquidgl.naughtyduk.com"><img src="/assets/images/liquidGL-readme.gif" alt="liquidGL" style="width: 100%"/></a>
+<a href="https://liquidgl.naughtyduk.com"><img src="/assets/images/liquidGL-readme.gif" alt="liquidGL" width="100%" height="auto"/></a>
 
 ### v3.0.0
 
