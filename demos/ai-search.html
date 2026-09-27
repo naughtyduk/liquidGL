@@ -1,0 +1,802 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI Search - liquidGL – Liquid Glass - NaughtyDuk©</title>
+    <link rel="icon" href="/assets/images/favicon.ico" />
+    <meta
+      name="description"
+      content="A Liquid Glass search bar with frosted, minimal refraction as you type and submit."
+    />
+    <meta
+      name="keywords"
+      content="liquidGL, webGL, liquid glass, menu bar, real-time, refraction, NaughtyDuk©"
+    />
+    <meta name="author" content="NaughtyDuk©" />
+    <meta name="robots" content="index, follow" />
+    <meta name="googlebot" content="index, follow" />
+    <meta property="og:image" content="/assets/images/_0001_ai-search.jpg" />
+    <meta
+      property="og:title"
+      content="AI Search - liquidGL – Liquid Glass - NaughtyDuk©"
+    />
+    <meta
+      property="og:description"
+      content="A Liquid Glass search bar with frosted, minimal refraction as you type and submit."
+    />
+    <meta
+      property="og:url"
+      content="https://liquidgl.naughtyduk.com/demos/ai-search.html"
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="en_GB" />
+    <meta property="og:site_name" content="liquidGL" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta
+      name="twitter:title"
+      content="AI Search - liquidGL – Liquid Glass - NaughtyDuk©"
+    />
+    <meta
+      name="twitter:description"
+      content="A Liquid Glass search bar with frosted, minimal refraction as you type and submit."
+    />
+    <meta name="twitter:image" content="/assets/images/_0001_ai-search.jpg" />
+    <meta
+      name="twitter:url"
+      content="https://liquidgl.naughtyduk.com/demos/ai-search.html"
+    />
+    <style>
+      :root {
+        --text-color: #333333;
+        --bg-color: #ececec;
+        --secondary-text: rgba(0, 0, 0, 0.5);
+        scroll-behavior: auto;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
+          Arial, sans-serif;
+        background-color: var(--bg-color);
+        color: var(--text-color);
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        line-height: 1.5;
+        height: 100svh;
+        overflow: hidden;
+      }
+
+      @media (max-width: 768px) {
+        .lil-gui {
+          display: none !important;
+        }
+      }
+
+      .bg-image {
+        position: fixed;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        z-index: 0;
+        -webkit-user-drag: none;
+        -webkit-user-select: none;
+        user-select: none;
+      }
+
+      /* Global Navigation Styles */
+      .global-nav {
+        position: fixed;
+        top: 1rem;
+        left: 1rem;
+        z-index: 10000;
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
+          Arial, sans-serif;
+      }
+
+      .nav-container {
+        background: #120d0e;
+        backdrop-filter: blur(16px);
+        border-radius: 12px;
+        border: 0.5px solid #1e1e20;
+        overflow: hidden;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 4px 16px rgb(0 0 0 / 20%);
+      }
+
+      .nav-toggle {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 16px;
+        background: transparent;
+        border: none;
+        color: #f0f0f0;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 500;
+        width: 100%;
+        text-align: left;
+        transition: all 0.2s ease;
+      }
+
+      .nav-toggle:hover {
+        background: rgb(21 21 25);
+      }
+
+      .nav-toggle svg {
+        width: 16px;
+        height: 16px;
+        fill: currentColor;
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      .nav-container.expanded .nav-toggle svg {
+        transform: rotate(180deg);
+      }
+
+      .nav-menu {
+        max-height: 0;
+        overflow: scroll;
+        transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      .nav-container.expanded .nav-menu {
+        max-height: 420px;
+        overflow-y: auto;
+      }
+
+      .nav-item {
+        display: block;
+        padding: 10px 16px;
+        color: #88888f;
+        text-decoration: none;
+        font-size: 13px;
+        font-weight: 400;
+        transition: all 0.2s ease;
+        border-top: 0.5px solid #1e1e20;
+        position: relative;
+        cursor: pointer;
+      }
+
+      .nav-item:hover {
+        background: rgb(21 21 25);
+        color: #f0f0f0;
+      }
+
+      .nav-item.active {
+        color: #f0f0f0;
+        background: rgb(21 21 25);
+      }
+
+      .nav-item.active::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background: #fafafa;
+      }
+
+      @media (max-width: 768px) {
+        .global-nav {
+          top: 0.5rem;
+          left: 0.5rem;
+        }
+
+        .nav-toggle {
+          padding: 10px 14px;
+          font-size: 13px;
+        }
+
+        .nav-item {
+          padding: 8px 14px;
+          font-size: 12px;
+        }
+      }
+
+      /* --- Stage; centre holds the liquidGL search lens --- */
+      .stage {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        pointer-events: none;
+        z-index: 100;
+        padding: 1rem;
+      }
+
+      /* Keep lens content above the fixed WebGL canvas */
+      .glass > * {
+        position: relative;
+        z-index: 2;
+      }
+
+      .search-wrap {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        width: min(540px, 92vw);
+      }
+
+      /* --- Search pill (liquidGL lens) --- */
+      .search-bar {
+        position: relative;
+        flex: 1;
+        height: 64px;
+        border-radius: 999px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 0 10px 0 8px;
+        pointer-events: auto !important; /* library sets none when draggable: false */
+        user-select: none;
+        touch-action: none;
+        color: #f0f0f0;
+      }
+
+      .search-bubble {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        object-fit: cover;
+        flex-shrink: 0;
+        mix-blend-mode: multiply; /* drops the white video background */
+        pointer-events: none;
+      }
+
+      .input-wrap {
+        position: relative;
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        align-items: center;
+      }
+
+      .search-input {
+        width: 100%;
+        background: transparent;
+        border: none;
+        outline: none;
+        font-family: inherit;
+        font-size: 16px;
+        font-weight: 500;
+        color: #f0f0f0;
+        user-select: text;
+        text-indent: 18px;
+        caret-color: rgba(255, 255, 255, 0.75);
+      }
+
+      /* While empty, the fake blinking caret covers the caret position, so
+         hide the native one to avoid a jump when focusing */
+      .search-input:placeholder-shown {
+        caret-color: transparent;
+      }
+
+      .search-input::placeholder {
+        color: rgba(255, 255, 255, 0.55);
+      }
+
+      .search-input.typing::placeholder {
+        color: rgba(255, 255, 255, 0.75);
+      }
+
+      .input-caret {
+        position: absolute;
+        left: 12px; /* match the input's text-indent so the native caret lands in the same spot */
+        top: 50%;
+        transform: translateY(-50%);
+        width: 2px;
+        height: 18px;
+        border-radius: 1px;
+        background: rgba(255, 255, 255, 0.75);
+        animation: blink 1.1s steps(1) infinite;
+        pointer-events: none;
+      }
+
+      .input-wrap:has(.search-input.has-value) .input-caret {
+        display: none;
+      }
+
+      @keyframes blink {
+        50% {
+          opacity: 0;
+        }
+      }
+
+      /* --- Trailing icon actions (mic / waveform) --- */
+      .search-actions {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        flex-shrink: 0;
+      }
+
+      .icon-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 44px;
+        height: 44px;
+        border: none;
+        border-radius: 50%;
+        background: transparent;
+        color: rgba(255, 255, 255, 0.75);
+        cursor: pointer;
+        transition:
+          background 0.2s ease,
+          color 0.2s ease;
+      }
+
+      .icon-btn:hover {
+        background: rgba(255, 255, 255, 0.14);
+        color: #f0f0f0;
+      }
+
+      .icon-btn svg,
+      .search-go svg {
+        width: 20px;
+        height: 20px;
+        display: block;
+      }
+
+      /* --- Submit lens circle --- */
+      .search-go {
+        position: relative;
+        flex-shrink: 0;
+        width: 64px;
+        height: 64px;
+        border: none;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #f0f0f0;
+        cursor: pointer;
+        pointer-events: auto !important;
+        user-select: none;
+        touch-action: none;
+      }
+
+      @media (max-width: 640px) {
+        .search-bar {
+          height: 56px;
+        }
+
+        .search-bubble {
+          width: 42px;
+          height: 42px;
+        }
+
+        .search-go {
+          width: 56px;
+          height: 56px;
+        }
+
+        .icon-btn {
+          width: 40px;
+          height: 40px;
+        }
+      }
+
+      /* --- Demo disclaimer --- */
+      .demo-disclaimer {
+        position: fixed;
+        bottom: 2rem;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 100%;
+        max-width: 420px;
+        padding: 0 1rem;
+        text-align: center;
+        text-transform: uppercase;
+        z-index: 10001;
+        pointer-events: none;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        color: rgba(255, 255, 255, 0.92);
+      }
+
+      .demo-disclaimer .disclaimer-feature {
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: 0.02em;
+        margin-bottom: 6px;
+      }
+
+      .demo-disclaimer .disclaimer-note {
+        font-size: 9px;
+        font-weight: 400;
+        letter-spacing: -0.02em;
+        line-height: 1.25;
+        max-width: 280px;
+        color: rgba(255, 255, 255, 0.6);
+      }
+
+      @media (max-width: 640px) {
+        .demo-disclaimer .disclaimer-note {
+          display: none;
+        }
+        .demo-disclaimer {
+          bottom: 1rem !important;
+        }
+      }
+
+      @media (max-width: 640px) {
+        .demo-disclaimer .disclaimer-note {
+          display: none;
+        }
+        .demo-disclaimer {
+          bottom: 1rem !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <img
+      class="bg-image"
+      src="/assets/images/red-bkg.webp"
+      alt=""
+      aria-hidden="true"
+    />
+
+    <!-- Global Navigation -->
+    <nav class="global-nav">
+      <div class="nav-container">
+        <button
+          class="nav-toggle"
+          aria-expanded="false"
+          aria-label="Toggle navigation menu"
+        >
+          <span>Demos</span>
+          <svg viewBox="0 0 16 16">
+            <path d="M8 11L3 6h10l-5 5z" />
+          </svg>
+        </button>
+        <div data-lenis-prevent class="nav-menu">
+          <a href="../index.html" class="nav-item">Index</a>
+          <a href="audio-player.html" class="nav-item">Audio Player</a>
+          <a href="menu-bar.html" class="nav-item">Menu Bar</a>
+          <a href="ai-search.html" class="nav-item active">AI Search</a>
+          <a href="multiple-lenses.html" class="nav-item">Multiple Lenses</a>
+          <a href="chromatic-aberration.html" class="nav-item"
+            >Chromatic Aberration</a
+          >
+          <a href="fluid-interaction.html" class="nav-item"
+            >Fluid Interaction</a
+          >
+          <a href="frost-specular.html" class="nav-item"
+            >Frost &amp; Specular</a
+          >
+          <a href="tinted-glass.html" class="nav-item">Tinted Glass</a>
+          <a href="stacked-lenses.html" class="nav-item">Stacked Lenses</a>
+          <a href="true-refraction.html" class="nav-item">True Refraction</a>
+        </div>
+      </div>
+    </nav>
+
+    <!-- AI search bar: content sits inside the liquidGL target; the library
+         warps the background behind it, not this content -->
+    <div class="stage">
+      <div class="search-wrap">
+        <div class="search-bar glass" id="lens" role="search">
+          <video
+            data-liquid-ignore
+            class="search-bubble"
+            src="/assets/videos/search-bubble.mp4"
+            autoplay
+            muted
+            loop
+            playsinline
+            aria-hidden="true"
+          ></video>
+
+          <div class="input-wrap">
+            <input
+              class="search-input"
+              id="search-input"
+              type="text"
+              placeholder="Ask Duk..."
+              autocomplete="off"
+              spellcheck="false"
+              aria-label="Ask Duk"
+            />
+            <span class="input-caret" aria-hidden="true"></span>
+          </div>
+
+          <div class="search-actions">
+            <button class="icon-btn" type="button" aria-label="Voice search">
+              <!-- lucide: mic -->
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M12 19v3" />
+                <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                <rect x="9" y="2" width="6" height="12" rx="3" />
+              </svg>
+            </button>
+            <button class="icon-btn" type="button" aria-label="Start audio">
+              <!-- lucide: audio-waveform -->
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path
+                  d="M2 13a2 2 0 0 0 2-2V7a2 2 0 0 1 4 0v13a2 2 0 0 0 4 0V4a2 2 0 0 1 4 0v13a2 2 0 0 0 4 0v-4a2 2 0 0 1 2-2"
+                />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <button
+          class="search-go glass"
+          id="search-go"
+          type="button"
+          aria-label="Search"
+        >
+          <!-- lucide: search -->
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <circle cx="11" cy="11" r="8" />
+            <path d="m21 21-4.3-4.3" />
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="demo-disclaimer">
+      <p class="disclaimer-feature">
+        AI search bar, with frost + minimal refraction
+      </p>
+      <p class="disclaimer-note">
+        This search bar is for illustrative purposes only and does not function
+        as an actual search bar, or condone the use of specific AI products.
+      </p>
+    </div>
+
+    <!-- Libraries -->
+    <script
+      src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"
+      integrity="sha384-HOvlOYPIs/zjoIkWUGXkVmXsjr8GuZLV+Q+rcPwmJOVZVpvTSXQChiN4t9Euv9Vc"
+      crossorigin="anonymous"
+    ></script>
+
+    <!-- Scripts -->
+    <script src="/scripts/liquidGL.js"></script>
+    <script src="/scripts/liquidGL-helper.js"></script>
+    <script>
+      let glassEffect;
+
+      document.addEventListener("DOMContentLoaded", () => {
+        /* Global Navigation Setup */
+        const navToggle = document.querySelector(".nav-toggle");
+        const navContainer = document.querySelector(".nav-container");
+
+        if (navToggle && navContainer) {
+          navToggle.addEventListener("click", () => {
+            const isExpanded = navContainer.classList.contains("expanded");
+            navContainer.classList.toggle("expanded");
+            navToggle.setAttribute("aria-expanded", !isExpanded);
+          });
+
+          // Close navigation when clicking outside
+          document.addEventListener("click", (e) => {
+            if (!navContainer.contains(e.target)) {
+              navContainer.classList.remove("expanded");
+              navToggle.setAttribute("aria-expanded", "false");
+            }
+          });
+
+          // Close navigation when pressing Escape
+          document.addEventListener("keydown", (e) => {
+            if (
+              e.key === "Escape" &&
+              navContainer.classList.contains("expanded")
+            ) {
+              navContainer.classList.remove("expanded");
+              navToggle.setAttribute("aria-expanded", "false");
+            }
+          });
+        }
+
+        /* --- Dynamic AI-style placeholder: cycles prompts with a typing
+           effect until the user starts typing --- */
+        const input = document.getElementById("search-input");
+        const prompts = [
+          "Ask Duk...",
+          "Ask Duk to remix this beat...",
+          "Ask Duk for liquid glass tips...",
+          "Ask Duk what's new...",
+        ];
+        let promptIdx = 0;
+        let charIdx = 0;
+        let deleting = false;
+        let paused = false;
+        let timer = null;
+
+        const schedule = (delay) => {
+          clearTimeout(timer);
+          timer = setTimeout(typeLoop, delay);
+        };
+
+        function typeLoop() {
+          if (paused || input.value) return;
+          input.classList.add("typing");
+          const current = prompts[promptIdx];
+          charIdx += deleting ? -1 : 1;
+          input.placeholder = current.slice(0, charIdx);
+
+          let delay = deleting ? 22 : 55 + Math.random() * 40;
+          if (!deleting && charIdx === current.length) {
+            delay = 2200;
+            deleting = true;
+          } else if (deleting && charIdx === 0) {
+            deleting = false;
+            promptIdx = (promptIdx + 1) % prompts.length;
+            delay = 400;
+          }
+          schedule(delay);
+        }
+
+        input.addEventListener("input", () => {
+          input.classList.toggle("has-value", input.value.length > 0);
+        });
+
+        input.addEventListener("focus", () => {
+          paused = true;
+          clearTimeout(timer);
+          input.classList.remove("typing");
+          input.placeholder = "Type...";
+        });
+
+        input.addEventListener("blur", () => {
+          if (input.value) return;
+          /* resume from the start of the next prompt */
+          promptIdx = (promptIdx + 1) % prompts.length;
+          charIdx = 0;
+          deleting = false;
+          input.placeholder = "";
+          paused = false;
+          schedule(400);
+        });
+
+        /* --- Intro: the bar's width expands from 0 to natural. The wrap
+           hugs its contents (max-content) so the stage centres the whole
+           cluster every frame, and the bar's children are centre-anchored
+           so nothing inside moves — the pill opens around them. Typing
+           kicks in just before the expansion finishes --- */
+        const wrap = document.querySelector(".search-wrap");
+        const bar = wrap.querySelector(".search-bar");
+        const goIcon = document.querySelector("#search-go svg");
+        const actionBtns = bar.querySelectorAll(".icon-btn");
+        const naturalWidth = bar.offsetWidth;
+
+        gsap.set(wrap, { width: "max-content" });
+        gsap.set(bar, {
+          flex: "none",
+          justifyContent: "center",
+          minWidth: 0,
+          overflow: "hidden",
+          width: 0,
+          paddingLeft: 0,
+          paddingRight: 0,
+        });
+        gsap.set(goIcon, { scale: 0, transformOrigin: "50% 50%" });
+        gsap.set(actionBtns, { scale: 0, transformOrigin: "50% 50%" });
+
+        gsap
+          .timeline({
+            /* lenses only refresh via ResizeObserver (size), but the
+               button only moves position while the bar grows — sync
+               metrics every frame so its glass tracks it */
+            onUpdate: () => {
+              const r = window.__liquidGLRenderer__;
+              if (!r) return;
+              r.lenses.forEach((l) => l.updateMetrics());
+              r.render();
+            },
+            onComplete: () => {
+              /* clearProps: "all" would wipe *every* inline style on these
+                 elements, including the box-shadow liquidGL sets directly
+                 on the lens (.search-bar) — only clear what we set */
+              gsap.set(wrap, { clearProps: "width" });
+              gsap.set(bar, {
+                clearProps:
+                  "flex,justifyContent,minWidth,overflow,width,paddingLeft,paddingRight",
+              });
+              gsap.set([goIcon, actionBtns], { clearProps: "scale" });
+            },
+          })
+          /* search icon pops in at 100ms */
+          .to(goIcon, { scale: 1, duration: 0.45, ease: "back.out(2.5)" }, 0.1)
+          /* bar opens 300ms after the pop */
+          .to(
+            bar,
+            {
+              width: naturalWidth,
+              paddingLeft: 8,
+              paddingRight: 10,
+              duration: 1.3,
+              ease: "expo.out",
+            },
+            0.85,
+          )
+          /* mic + waveform stagger in later into the opening */
+          .to(
+            actionBtns,
+            {
+              scale: 1,
+              duration: 0.45,
+              ease: "back.out(2)",
+              stagger: 0.22,
+            },
+            1.25,
+          )
+          .call(() => schedule(100), null, 0.85 + 1.05);
+
+        function initializeliquidGL() {
+          glassEffect = liquidGL({
+            target: ".glass",
+            snapshot: "body",
+            resolution: 2,
+            refraction: 0.007,
+            aberration: 0,
+            bevelDepth: 0.084,
+            bevelWidth: 0.108,
+            frost: 4.2,
+            shadow: true,
+            specular: true,
+            reveal: "none",
+            tilt: false,
+            tiltFactor: 5,
+            tiltEase: 400,
+            draggable: false,
+            interaction: "none",
+            interactionStrength: 5,
+            interactionRadius: 2.4,
+            interactionViscosity: 0.5,
+            magnify: 1.3,
+            tint: "rgba(0, 0, 0, 0.02)",
+            helper: true,
+          });
+        }
+
+        initializeliquidGL();
+
+        window.addEventListener("load", () => {
+          liquidGL.syncWith();
+        });
+      });
+    </script>
+  </body>
+</html>

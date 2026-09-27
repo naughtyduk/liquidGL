@@ -19,3 +19,22 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+---
+
+Exclusion of Assets
+
+The MIT License above applies only to the source code of this project (the
+contents of the `scripts/` and `package/` directories). It does NOT apply to
+the contents of the `assets/` directory (including but not limited to the
+audio files under `assets/audio/` and `assets/fonts/`), which are provided
+for demonstration purposes only and may not be copied, redistributed, or
+reused outside of this repository without separate permission from their
+respective rights holders.
+
+---
+
+Support Open Source
+
+If this project has been useful to you, please consider supporting its
+continued open-source development at https://liquidgl.naughtyduk.com

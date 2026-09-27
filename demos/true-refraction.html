@@ -1,0 +1,1158 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>True Refraction - liquidGL – Liquid Glass - NaughtyDuk©</title>
+    <link rel="icon" href="/assets/images/favicon.ico" />
+    <meta
+      name="description"
+      content="A Liquid Glass lens using physically-based refraction, with adjustable bevel depth and width shaping the pane."
+    />
+    <meta
+      name="keywords"
+      content="liquidGL, webGL, webGPU, liquid glass, true refraction, bevel, optics, real-time, refraction, NaughtyDuk©"
+    />
+    <meta name="author" content="NaughtyDuk©" />
+    <meta name="robots" content="index, follow" />
+    <meta name="googlebot" content="index, follow" />
+    <meta
+      property="og:image"
+      content="/assets/images/_0009_true-refraction.jpg"
+    />
+    <meta
+      property="og:title"
+      content="True Refraction - liquidGL – Liquid Glass - NaughtyDuk©"
+    />
+    <meta
+      property="og:description"
+      content="A Liquid Glass lens using physically-based refraction, with adjustable bevel depth and width shaping the pane."
+    />
+    <meta
+      property="og:url"
+      content="https://liquidgl.naughtyduk.com/demos/true-refraction.html"
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="en_GB" />
+    <meta property="og:site_name" content="liquidGL" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta
+      name="twitter:title"
+      content="True Refraction - liquidGL – Liquid Glass - NaughtyDuk©"
+    />
+    <meta
+      name="twitter:description"
+      content="A Liquid Glass lens using physically-based refraction, with adjustable bevel depth and width shaping the pane."
+    />
+    <meta
+      name="twitter:image"
+      content="/assets/images/_0009_true-refraction.jpg"
+    />
+    <meta
+      name="twitter:url"
+      content="https://liquidgl.naughtyduk.com/demos/true-refraction.html"
+    />
+    <style>
+      :root {
+        --text-color: #333333;
+        --bg-color: #ececec;
+        --secondary-text: rgba(0, 0, 0, 0.5);
+        scroll-behavior: auto;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
+          Arial, sans-serif;
+        background-color: var(--bg-color);
+        color: var(--text-color);
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        line-height: 1.5;
+        height: 100svh;
+        overflow: hidden;
+      }
+
+      @media (max-width: 768px) {
+        .lil-gui {
+          display: none !important;
+        }
+      }
+
+      .bg-video {
+        position: fixed;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        z-index: 0;
+        -webkit-user-drag: none;
+        -webkit-user-select: none;
+        user-select: none;
+      }
+
+      .bg-scrim {
+        position: fixed;
+        inset: 0;
+        z-index: 1;
+        background: rgba(10, 10, 12, 0.35);
+        pointer-events: none;
+      }
+
+      /* Global Navigation Styles */
+      .global-nav {
+        position: fixed;
+        top: 1rem;
+        left: 1rem;
+        z-index: 10000;
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
+          Arial, sans-serif;
+      }
+
+      .nav-container {
+        background: #120d0e;
+        backdrop-filter: blur(16px);
+        border-radius: 12px;
+        border: 0.5px solid #1e1e20;
+        overflow: hidden;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 4px 16px rgb(0 0 0 / 20%);
+      }
+
+      .nav-toggle {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 16px;
+        background: transparent;
+        border: none;
+        color: #f0f0f0;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 500;
+        width: 100%;
+        text-align: left;
+        transition: all 0.2s ease;
+      }
+
+      .nav-toggle:hover {
+        background: rgb(21 21 25);
+      }
+
+      .nav-toggle svg {
+        width: 16px;
+        height: 16px;
+        fill: currentColor;
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      .nav-container.expanded .nav-toggle svg {
+        transform: rotate(180deg);
+      }
+
+      .nav-menu {
+        max-height: 0;
+        overflow: scroll;
+        transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      .nav-container.expanded .nav-menu {
+        max-height: 420px;
+        overflow-y: auto;
+      }
+
+      .nav-item {
+        display: block;
+        padding: 10px 16px;
+        color: #88888f;
+        text-decoration: none;
+        font-size: 13px;
+        font-weight: 400;
+        transition: all 0.2s ease;
+        border-top: 0.5px solid #1e1e20;
+        position: relative;
+        cursor: pointer;
+      }
+
+      .nav-item:hover {
+        background: rgb(21 21 25);
+        color: #f0f0f0;
+      }
+
+      .nav-item.active {
+        color: #f0f0f0;
+        background: rgb(21 21 25);
+      }
+
+      .nav-item.active::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background: #fafafa;
+      }
+
+      @media (max-width: 768px) {
+        .global-nav {
+          top: 0.5rem;
+          left: 0.5rem;
+        }
+
+        .nav-toggle {
+          padding: 10px 14px;
+          font-size: 13px;
+        }
+
+        .nav-item {
+          padding: 8px 14px;
+          font-size: 12px;
+        }
+      }
+
+      /* --- Stage; centre holds the liquidGL lens --- */
+      .stage {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        pointer-events: none;
+        z-index: 100;
+        padding: 1rem;
+      }
+
+      /* Keep lens content above the fixed WebGL canvas */
+      .glass > * {
+        position: relative;
+        z-index: 2;
+      }
+
+      /* --- Demo disclaimer --- */
+      .demo-disclaimer {
+        position: fixed;
+        bottom: 2rem;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 100%;
+        max-width: 420px;
+        padding: 0 1rem;
+        text-align: center;
+        text-transform: uppercase;
+        z-index: 10001;
+        pointer-events: none;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        color: rgba(255, 255, 255, 0.92);
+      }
+
+      .demo-disclaimer .disclaimer-feature {
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: 0.02em;
+        margin-bottom: 6px;
+      }
+
+      .demo-disclaimer .disclaimer-note {
+        font-size: 9px;
+        font-weight: 400;
+        letter-spacing: -0.02em;
+        line-height: 1.25;
+        max-width: 280px;
+        color: rgba(255, 255, 255, 0.6);
+      }
+
+      @media (max-width: 640px) {
+        .demo-disclaimer .disclaimer-note {
+          display: none;
+        }
+        .demo-disclaimer {
+          bottom: 1rem !important;
+        }
+      }
+
+      /* --- Landscape player: glass carries the layout,
+         one deliberate dark control band at the bottom --- */
+      .player-card {
+        position: relative;
+        width: min(660px, 94vw);
+        min-height: 240px;
+        border-radius: 30px;
+        display: flex;
+        gap: 22px;
+        padding: 20px;
+        color: #fff3e4;
+        pointer-events: auto !important;
+      }
+
+      .sleeve {
+        position: relative;
+        width: 200px;
+        flex-shrink: 0;
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: inset 0 0 0 1px rgba(255, 240, 225, 0.16);
+      }
+
+      .sleeve img {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+      }
+
+      .sleeve-caption {
+        position: absolute;
+        left: 10px;
+        bottom: 8px;
+        font-family: "SFMono-Regular", Menlo, Consolas, monospace;
+        font-size: 7.5px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: rgba(255, 200, 140, 0.6);
+      }
+
+      .deck {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+      }
+
+      .deck-eyebrow {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-size: 9px;
+        font-weight: 800;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: rgba(255, 240, 225, 0.9);
+      }
+
+      .eyebrow-live {
+        display: flex;
+        align-items: center;
+        letter-spacing: -0.02em;
+        gap: 8px;
+      }
+
+      .live-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: #ffd7b3;
+        box-shadow: 0 0 8px rgba(255, 161, 74, 0.9);
+        animation: live-pulse 2.2s ease-in-out infinite;
+      }
+
+      @keyframes live-pulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.35;
+        }
+      }
+
+      .deck-rpm {
+        font-family: "SFMono-Regular", Menlo, Consolas, monospace;
+        font-weight: 400;
+        letter-spacing: 0.08em;
+        color: rgba(255, 235, 215, 0.7);
+      }
+
+      .eyebrow-right {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .btn-share {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: rgba(255, 240, 225, 0.9);
+        transition: color 0.2s ease;
+      }
+
+      .btn-share svg {
+        width: 22px;
+        height: 22px;
+        display: block;
+      }
+
+      .btn-share:hover {
+        color: #ffffff;
+      }
+
+      .deck-track {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+
+      .track-title {
+        font-size: 24px;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        color: #ffedd6;
+      }
+
+      .track-artist {
+        font-size: 13px;
+        color: rgba(255, 235, 215, 0.8);
+      }
+
+      .track-index {
+        margin-top: 8px;
+        font-family: "SFMono-Regular", Menlo, Consolas, monospace;
+        font-size: 9px;
+        letter-spacing: 0.14em;
+        color: rgba(255, 214, 163, 0.85);
+      }
+
+      /* Transport + timeline in one row directly on the glass */
+      .control-bar {
+        margin-top: auto;
+        padding: 6px 2px 0;
+        display: flex;
+        align-items: center;
+        gap: 22px;
+      }
+
+      .player-controls {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        flex-shrink: 0;
+      }
+
+      .player-btn {
+        background: none;
+        border: none;
+        color: rgba(255, 235, 215, 0.85);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition:
+          color 0.2s ease,
+          transform 0.15s ease;
+      }
+
+      .player-btn:hover {
+        color: #ffffff;
+      }
+
+      .player-btn:active {
+        transform: scale(0.92);
+      }
+
+      .player-btn svg {
+        width: 18px;
+        height: 18px;
+        fill: currentColor;
+      }
+
+      .player-btn-play {
+        width: 42px;
+        height: 42px;
+        border-radius: 50%;
+        border: 1px solid rgba(255, 200, 140, 0.55);
+        background: rgba(255, 170, 90, 0.08);
+        color: #ffd9ae;
+      }
+
+      .player-btn-play svg {
+        width: 22px;
+        height: 22px;
+        position: relative;
+      }
+
+      .player-btn-play #icon-play {
+        top: 1px;
+        right: 1px;
+      }
+
+      .player-btn-play #icon-pause {
+        top: 0;
+        right: 0;
+      }
+
+      .bar-progress {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        user-select: none;
+      }
+
+      .progress-track {
+        position: relative;
+        height: 16px;
+        cursor: pointer;
+        touch-action: none;
+        pointer-events: auto;
+      }
+
+      .progress-track::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 50%;
+        transform: translateY(-50%);
+        height: 3px;
+        border-radius: 2px;
+        background: rgba(255, 240, 225, 0.32);
+      }
+
+      .progress-fill {
+        position: absolute;
+        top: 50%;
+        left: 0;
+        transform: translateY(-50%);
+        height: 3px;
+        width: 0%;
+        border-radius: 2px;
+        background: linear-gradient(90deg, #ffb45e, #ffd9a3);
+      }
+
+      .progress-knob {
+        position: absolute;
+        top: 50%;
+        left: 0%;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: #ffe9d2;
+        will-change: transform, width;
+      }
+
+      .progress-times {
+        display: flex;
+        justify-content: space-between;
+        font-family: "SFMono-Regular", Menlo, Consolas, monospace;
+        font-size: 10px;
+        letter-spacing: 0.04em;
+        font-variant-numeric: tabular-nums;
+        color: rgba(255, 235, 215, 0.8);
+      }
+
+      @media (max-width: 560px) {
+        .player-card {
+          flex-direction: column;
+        }
+
+        /* Artwork stays a true square, banner crop banished */
+        .sleeve {
+          width: 100%;
+          aspect-ratio: 1;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <video
+      class="bg-video"
+      src="/assets/videos/lgl-true-refraction-opt.mp4"
+      autoplay
+      loop
+      muted
+      playsinline
+      aria-hidden="true"
+    ></video>
+    <div class="bg-scrim"></div>
+
+    <!-- Global Navigation -->
+    <nav class="global-nav">
+      <div class="nav-container">
+        <button
+          class="nav-toggle"
+          aria-expanded="false"
+          aria-label="Toggle navigation menu"
+        >
+          <span>Demos</span>
+          <svg viewBox="0 0 16 16">
+            <path d="M8 11L3 6h10l-5 5z" />
+          </svg>
+        </button>
+        <div data-lenis-prevent class="nav-menu">
+          <a href="../index.html" class="nav-item">Index</a>
+          <a href="audio-player.html" class="nav-item">Audio Player</a>
+          <a href="menu-bar.html" class="nav-item">Menu Bar</a>
+          <a href="ai-search.html" class="nav-item">AI Search</a>
+          <a href="multiple-lenses.html" class="nav-item">Multiple Lenses</a>
+          <a href="chromatic-aberration.html" class="nav-item"
+            >Chromatic Aberration</a
+          >
+          <a href="fluid-interaction.html" class="nav-item"
+            >Fluid Interaction</a
+          >
+          <a href="frost-specular.html" class="nav-item">Frost & Specular</a>
+          <a href="tinted-glass.html" class="nav-item">Tinted Glass</a>
+          <a href="stacked-lenses.html" class="nav-item">Stacked Lenses</a>
+          <a href="true-refraction.html" class="nav-item active"
+            >True Refraction</a
+          >
+        </div>
+      </div>
+    </nav>
+
+    <div class="stage">
+      <div class="player-card glass" id="player">
+        <div class="sleeve">
+          <img
+            src="/assets/images/tentendo-give-it-up-artwork.webp"
+            alt="Give It Up artwork"
+            id="player-artwork"
+          />
+          <span class="sleeve-caption">Side B · NGT-012</span>
+        </div>
+
+        <div class="deck">
+          <div class="deck-eyebrow">
+            <span class="eyebrow-live">
+              <span class="live-dot"></span>
+              Now Playing
+            </span>
+            <span class="eyebrow-right">
+              <span class="deck-rpm">33⅓ RPM</span>
+              <a
+                id="btn-share"
+                class="btn-share"
+                href="https://open.spotify.com/artist/3eUpxakSdjFZ5ROQKgfL2W?si=YeHsuDXOQ72ruMRDR6ED5w"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Listen on Spotify"
+              >
+                <svg viewBox="0 0 496 496" fill="currentColor">
+                  <path
+                    fill-rule="evenodd"
+                    clip-rule="evenodd"
+                    d="M248 0C384.9 0 496 111.1 496 248C496 384.9 384.9 496 248 496C111.1 496 0 384.9 0 248C0 111.1 111.1 0 248 0ZM354.199 333C282.799 290.3 199.099 288.701 117.199 306.801C109.699 308.401 103.6 313.301 103.6 323.601C103.6 331.7 109.7 339.4 119.399 339.4C122.299 339.4 127.4 337.801 131.3 336.801C203 322.101 275.6 323.701 338 361.301C341.9 363.601 344.5 364.9 348.699 364.9C356.799 364.9 363.899 358.6 363.899 349.5C363.899 340.4 360.299 336.9 354.199 333ZM206.699 214.601C165.099 214.601 136.699 220.4 108.899 228.2C98.5995 231.1 93.3994 238.2 93.3994 248.9C93.3994 259.6 102.1 268.301 112.8 268.301C117.3 268.301 119.899 267 124.699 265.7C207.599 243.2 300.8 258.101 363.3 295.101C366.9 297.001 370.4 299.301 375.6 299.301C386.499 299.301 394.9 290.601 395 279.801C395 271.101 391.799 264.901 383.699 260.101C334.299 230.701 271.599 214.601 206.699 214.601ZM211.5 129.4C168.6 129.4 129.2 134.301 94 144.601C85.0001 147.201 76.5998 154.9 76.5996 168.5C76.5996 181.8 86.6995 192.1 99.8994 192.101C104.699 192.101 109.2 190.5 112.8 189.5C195.2 166.5 322.499 176.7 393.699 219.2C398.199 221.8 401.4 223.101 406.6 223.101C418.799 223.101 429.8 213.401 429.8 199.801C429.8 187.901 424.699 181.7 416.899 177.2C361 144.6 284.5 129.4 211.5 129.4Z"
+                  />
+                </svg>
+              </a>
+            </span>
+          </div>
+
+          <div class="deck-track" id="deck-track">
+            <span class="track-title" id="player-title">Give It Up</span>
+            <span class="track-artist" id="player-artist"
+              >Tentendo &amp; Annalisa Fernandez</span
+            >
+            <span class="track-index" id="track-index">TRK 1 / 2</span>
+          </div>
+
+          <div class="control-bar">
+            <div class="player-controls">
+              <button class="player-btn" id="btn-replay" aria-label="Replay">
+                <svg viewBox="0 0 100 114" fill="currentColor">
+                  <path
+                    d="M23.8433 85.8104C36.1385 100.403 57.8079 102.449 72.1545 90.3614C86.5011 78.2736 88.1612 56.5713 75.866 41.9785C70.8069 35.9741 63.8728 31.8558 56.1844 30.2891L56.1382 40.5439C56.1102 45.3178 50.4865 47.8342 46.907 44.6439L26.7515 26.7385C24.4732 24.6995 24.2424 21.1906 26.2895 18.9039C26.4729 18.6983 26.654 18.5202 26.8626 18.3445L47.1758 1.30613C50.781 -1.73146 56.3066 0.866176 56.2959 5.60007L56.2578 14.4434C68.5222 16.2412 79.7207 22.4879 87.7087 31.9996C105.629 53.2686 103.199 84.7903 82.2977 102.4C61.3968 120.011 29.9204 117.058 11.9995 95.7887C1.08164 82.9213 -2.68336 65.4827 1.93221 49.2838C3.501 43.799 10.3198 41.8848 14.5949 45.6894C16.8755 47.7009 17.8154 50.842 17.0011 53.7757C13.7672 64.903 16.3395 76.9355 23.8426 85.8097L23.8433 85.8104Z"
+                  />
+                </svg>
+              </button>
+              <button
+                class="player-btn"
+                id="btn-prev"
+                aria-label="Previous track"
+              >
+                <svg viewBox="0 0 24 24">
+                  <path d="M6 5h2v14H6zM20 5v14L9.5 12z" />
+                </svg>
+              </button>
+              <button
+                class="player-btn player-btn-play"
+                id="btn-play"
+                aria-label="Play"
+              >
+                <svg viewBox="0 0 24 24" fill="currentColor" id="icon-play">
+                  <path
+                    d="M7.5 5.2c0-1.3 1.4-2 2.5-1.4l9.3 5.4a1.7 1.7 0 0 1 0 2.9l-9.3 5.4c-1.1.6-2.5-.1-2.5-1.4z"
+                  />
+                </svg>
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                  id="icon-pause"
+                  style="display: none"
+                >
+                  <rect x="6" y="4.5" width="4" height="15" rx="1.6" />
+                  <rect x="14" y="4.5" width="4" height="15" rx="1.6" />
+                </svg>
+              </button>
+              <button class="player-btn" id="btn-next" aria-label="Next track">
+                <svg viewBox="0 0 24 24">
+                  <path d="M16 5h2v14h-2zM4 5v14l10.5-7z" />
+                </svg>
+              </button>
+            </div>
+
+            <div class="bar-progress">
+              <div
+                class="progress-track"
+                id="progress-track"
+                role="slider"
+                aria-label="Seek"
+              >
+                <div class="progress-fill" id="progress-fill"></div>
+                <div
+                  class="progress-knob"
+                  id="progress-knob"
+                  data-liquid-ignore
+                ></div>
+              </div>
+              <div class="progress-times">
+                <span id="time-elapsed">0:00</span>
+                <span id="time-remaining">-0:00</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="demo-disclaimer">
+      <p class="disclaimer-feature">True refraction - real world physics</p>
+      <p class="disclaimer-note">
+        Music by Tentendo &amp; NATE08 is property of the rights holders and is
+        not affiliated with liquidGL. If you like the artists, support their
+        music.
+      </p>
+    </div>
+
+    <!-- Libraries -->
+    <script
+      src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"
+      integrity="sha384-HOvlOYPIs/zjoIkWUGXkVmXsjr8GuZLV+Q+rcPwmJOVZVpvTSXQChiN4t9Euv9Vc"
+      crossorigin="anonymous"
+    ></script>
+
+    <!-- Scripts -->
+    <script src="/scripts/liquidGL.js"></script>
+    <script src="/scripts/liquidGL-helper.js"></script>
+    <script>
+      let glassEffect;
+
+      document.addEventListener("DOMContentLoaded", () => {
+        /* Global Navigation Setup */
+        const navToggle = document.querySelector(".nav-toggle");
+        const navContainer = document.querySelector(".nav-container");
+
+        if (navToggle && navContainer) {
+          navToggle.addEventListener("click", () => {
+            const isExpanded = navContainer.classList.contains("expanded");
+            navContainer.classList.toggle("expanded");
+            navToggle.setAttribute("aria-expanded", !isExpanded);
+          });
+
+          // Close navigation when clicking outside
+          document.addEventListener("click", (e) => {
+            if (!navContainer.contains(e.target)) {
+              navContainer.classList.remove("expanded");
+              navToggle.setAttribute("aria-expanded", "false");
+            }
+          });
+
+          // Close navigation when pressing Escape
+          document.addEventListener("keydown", (e) => {
+            if (
+              e.key === "Escape" &&
+              navContainer.classList.contains("expanded")
+            ) {
+              navContainer.classList.remove("expanded");
+              navToggle.setAttribute("aria-expanded", "false");
+            }
+          });
+        }
+
+        /* Entrance animation */
+        gsap.from("#player", {
+          opacity: 0,
+          y: 24,
+          scale: 0.92,
+          duration: 0.9,
+          ease: "power3.out",
+          delay: 0.15,
+        });
+
+        /* Audio Player Setup (ported from audio-player): looping playlist,
+           analyser drives refraction + bevelWidth from playback level. */
+        const tracks = [
+          {
+            src: "/assets/audio/Tentendo%20%26%20Annalisa%20Fernandez%20-%20Give%20It%20Up.mp3",
+            title: "Give It Up",
+            artist: "Tentendo & Annalisa Fernandez",
+            artwork: "/assets/images/tentendo-give-it-up-artwork.webp",
+            spotify:
+              "https://open.spotify.com/artist/3eUpxakSdjFZ5ROQKgfL2W?si=YeHsuDXOQ72ruMRDR6ED5w",
+          },
+          {
+            src: "/assets/audio/NATE08%20-%20Primrose%20%28feat.%20Naisha%29.mp3",
+            title: "Primrose",
+            artist: "NATE08 feat. Naisha",
+            artwork: "/assets/images/NATE08-Primrose-artwork.webp",
+            spotify:
+              "https://open.spotify.com/artist/2Ozq8aYmGgLiGdbpsW6KSl?si=_ATbY5lySbyFNyI3L5SyHQ",
+          },
+        ];
+        let trackIdx = 0;
+
+        /* Preload artwork so src swaps are instant on track change */
+        tracks.forEach((t) => {
+          const img = new Image();
+          img.src = t.artwork;
+        });
+
+        const audio = new Audio(tracks[0].src);
+        audio.preload = "metadata";
+
+        const deckTrack = document.getElementById("deck-track");
+        const artworkEl = document.getElementById("player-artwork");
+        const titleEl = document.getElementById("player-title");
+        const artistEl = document.getElementById("player-artist");
+        const shareBtn = document.getElementById("btn-share");
+        const indexEl = document.getElementById("track-index");
+        const btnPlay = document.getElementById("btn-play");
+        const iconPlay = document.getElementById("icon-play");
+        const iconPause = document.getElementById("icon-pause");
+        const timeElapsed = document.getElementById("time-elapsed");
+        const timeRemaining = document.getElementById("time-remaining");
+        const progressTrack = document.getElementById("progress-track");
+        const progressFill = document.getElementById("progress-fill");
+        const progressKnob = document.getElementById("progress-knob");
+
+        const formatTime = (s) => {
+          if (!isFinite(s)) return "0:00";
+          const m = Math.floor(s / 60);
+          return `${m}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
+        };
+
+        const updateProgress = () => {
+          const pct = audio.duration
+            ? (audio.currentTime / audio.duration) * 100
+            : 0;
+          progressFill.style.width = `${pct}%`;
+          progressKnob.style.left = `${pct}%`;
+          timeElapsed.textContent = formatTime(audio.currentTime);
+          timeRemaining.textContent = `-${formatTime(audio.duration - audio.currentTime)}`;
+        };
+
+        const setPlaying = (playing) => {
+          iconPlay.style.display = playing ? "none" : "block";
+          iconPause.style.display = playing ? "block" : "none";
+          btnPlay.setAttribute("aria-label", playing ? "Pause" : "Play");
+        };
+
+        const switchTrack = (idx) => {
+          trackIdx = (idx + tracks.length) % tracks.length;
+          const t = tracks[trackIdx];
+
+          audio.src = t.src;
+          audio.play().catch(() => {});
+
+          titleEl.textContent = t.title;
+          artistEl.textContent = t.artist;
+          artworkEl.src = t.artwork;
+          indexEl.textContent = `TRK ${trackIdx + 1} / ${tracks.length}`;
+          if (t.spotify) shareBtn.href = t.spotify;
+
+          /* Swap happens instantly while everything is at opacity 0,
+             preloaded images mean no pop-in (same approach as audio-player) */
+          gsap.fromTo(
+            [deckTrack, artworkEl],
+            { opacity: 0 },
+            {
+              opacity: 1,
+              duration: 0.6,
+              ease: "power2.out",
+              overwrite: "auto",
+            },
+          );
+        };
+
+        btnPlay.addEventListener("click", () => {
+          if (audio.paused) audio.play();
+          else audio.pause();
+        });
+
+        document.getElementById("btn-replay").addEventListener("click", () => {
+          audio.currentTime = 0;
+        });
+
+        document.getElementById("btn-prev").addEventListener("click", () => {
+          /* Restart if we're in, else back a track */
+          if (audio.currentTime > 3) {
+            audio.currentTime = 0;
+          } else {
+            switchTrack(trackIdx - 1);
+          }
+        });
+
+        document.getElementById("btn-next").addEventListener("click", () => {
+          switchTrack(trackIdx + 1);
+        });
+
+        audio.addEventListener("timeupdate", updateProgress);
+        audio.addEventListener("loadedmetadata", updateProgress);
+        audio.addEventListener("play", () => setPlaying(true));
+        audio.addEventListener("pause", () => setPlaying(false));
+        audio.addEventListener("ended", () => {
+          switchTrack(trackIdx + 1); /* loop: track 2 wraps to track 1 */
+        });
+
+        /* Audio-reactive glass: drive the panel's refraction and
+           bevelWidth from playback level, pulsing between the configured
+           values and 2x. Runtime updates use the same mechanism as the
+           lil-gui helper: direct mutation of `lens.options`, which the
+           render loop reads every frame. */
+        const AUDIO_GAIN = 1; // depth multiplier applied after impact scaling
+        let audioCtx = null;
+        let analyser = null;
+        let freqData = null;
+        let prevFreq = null;
+        let bassWeight = null;
+        let audioLevel = 0;
+        let peakFlux = 0;
+
+        const ensureAnalyser = () => {
+          if (analyser) return;
+          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+          const source = audioCtx.createMediaElementSource(audio);
+          analyser = audioCtx.createAnalyser();
+          analyser.fftSize = 512; // ~12ms window, short enough to catch hits
+          analyser.smoothingTimeConstant = 0.3;
+          source.connect(analyser);
+          analyser.connect(audioCtx.destination);
+          freqData = new Float32Array(analyser.frequencyBinCount);
+          prevFreq = new Float32Array(analyser.frequencyBinCount);
+          /* Hard lowpass on the flux: full weight through the kick/snare
+             region (bins are ~86Hz wide), cosine taper to zero by ~1.4kHz.
+             Hats/cymbals contribute literally nothing. */
+          bassWeight = new Float32Array(analyser.frequencyBinCount);
+          for (let i = 0; i < bassWeight.length; i++) {
+            const t = Math.min(1, i / 16);
+            bassWeight[i] = Math.cos(t * (Math.PI / 2)) ** 2;
+          }
+        };
+
+        /* Lock lil-gui's Refraction / Bevel Width while playback owns them;
+           pause hands control back (all other controls stay live). */
+        const setAudioDrivenLock = (locked) => {
+          const labels = {
+            refraction: "Refraction",
+            bevelWidth: "Bevel Width",
+          };
+          (window.__liquidGLHelperGUIs__ || []).forEach(
+            ({ lenses, controllers }) => {
+              if (!controllers || !lenses.includes(glassEffect)) return;
+              Object.keys(labels).forEach((key) => {
+                const c = controllers[key];
+                if (!c) return;
+                c.name(locked ? `${labels[key]} · pause to edit` : labels[key]);
+                c.domElement.title = locked
+                  ? "Driven by playback - pause to edit"
+                  : "";
+                if (locked) c.disable();
+                else {
+                  c.enable();
+                  c.updateDisplay();
+                }
+              });
+            },
+          );
+        };
+
+        audio.addEventListener("play", () => {
+          ensureAnalyser();
+          if (audioCtx.state === "suspended") audioCtx.resume();
+          /* Adopt whatever the GUI last set as the new pulse base, then
+             lock those controls for the duration of playback. */
+          if (glassEffect && glassEffect.options) {
+            glassEffect._audioBase = {
+              refraction: glassEffect.options.refraction,
+              bevelWidth: glassEffect.options.bevelWidth,
+            };
+          }
+          setAudioDrivenLock(true);
+        });
+
+        audio.addEventListener("pause", () => setAudioDrivenLock(false));
+
+        gsap.ticker.add(() => {
+          if (
+            !analyser ||
+            !glassEffect ||
+            !glassEffect.options ||
+            !glassEffect._audioBase
+          )
+            return;
+          let target = 0;
+          if (!audio.paused) {
+            /* Spectral flux on LINEAR magnitudes: the analyser reports dB,
+               which compresses loud bands - a saturated low end barely moves
+               in dB when a kick lands, while quiet hats make big dB jumps.
+               Converting to linear (10^(dB/20)) restores real energy ratios,
+               so kick onsets dominate and hats are proportionally tiny. */
+            analyser.getFloatFrequencyData(freqData);
+            let flux = 0;
+            for (let i = 0; i < freqData.length; i++) {
+              const mag = Math.pow(10, freqData[i] / 20);
+              const d = mag - prevFreq[i];
+              if (d > 0) flux += d * bassWeight[i];
+              prevFreq[i] = mag;
+            }
+            /* Impact-relative: a slowly-decaying running max calibrates the
+               scale - the hardest hits (kicks) reach the full 2x, weaker
+               onsets modulate proportionally to their real impact instead
+               of saturating. */
+            peakFlux = Math.max(flux, peakFlux * 0.9998);
+            if (peakFlux > 0) {
+              target = Math.min(1, (flux / peakFlux) * AUDIO_GAIN);
+            }
+          }
+          /* Instant attack (jump straight to the onset), exponential decay
+             so the glass snaps on the hit then breathes back between beats. */
+          audioLevel = target > audioLevel ? target : audioLevel * 0.88;
+          /* Once paused and settled, stop writing so lil-gui edits stick -
+             ownership only belongs to the ticker while audio is moving. */
+          if (!audio.paused || audioLevel > 0.001) {
+            const base = glassEffect._audioBase;
+            glassEffect.options.refraction = base.refraction * (1 + audioLevel);
+            glassEffect.options.bevelWidth = base.bevelWidth * (1 + audioLevel);
+          }
+        });
+
+        const seekTo = (clientX) => {
+          const rect = progressTrack.getBoundingClientRect();
+          const ratio = Math.min(
+            1,
+            Math.max(0, (clientX - rect.left) / rect.width),
+          );
+          if (audio.duration) audio.currentTime = ratio * audio.duration;
+          updateProgress();
+        };
+
+        gsap.set(progressKnob, { xPercent: -50, yPercent: -50 });
+
+        const expandKnob = () =>
+          gsap.to(progressKnob, {
+            scale: 1.4,
+            width: 26,
+            height: 14,
+            duration: 0.35,
+            ease: "power3.out",
+            overwrite: "auto",
+          });
+        const resetKnob = () =>
+          gsap.to(progressKnob, {
+            scale: 1,
+            width: 12,
+            height: 12,
+            duration: 0.5,
+            ease: "elastic.out(1, 0.6)",
+            overwrite: "auto",
+          });
+
+        progressTrack.addEventListener("pointerdown", (e) => {
+          progressTrack.setPointerCapture(e.pointerId);
+          seekTo(e.clientX);
+          expandKnob();
+          const move = (ev) => seekTo(ev.clientX);
+          const up = () => {
+            progressTrack.removeEventListener("pointermove", move);
+            progressTrack.removeEventListener("pointerup", up);
+            resetKnob();
+          };
+          progressTrack.addEventListener("pointermove", move);
+          progressTrack.addEventListener("pointerup", up);
+        });
+
+        function initializeliquidGL() {
+          glassEffect = liquidGL({
+            target: ".glass",
+            snapshot: "body",
+            resolution: 2,
+            refraction: 0.074,
+            aberration: 0,
+            bevelDepth: 0.078,
+            bevelWidth: 0.32,
+            frost: 0,
+            shadow: false,
+            specular: true,
+            reveal: "none",
+            tilt: false,
+            tiltFactor: 6,
+            tiltEase: 400,
+            draggable: false,
+            interaction: "none",
+            interactionStrength: 0.5,
+            interactionRadius: 0.35,
+            interactionViscosity: 0.65,
+            magnify: 1.15,
+            tint: "rgba(255, 120, 20, 0.1)",
+            helper: true,
+          });
+
+          /* Second lens: the progress knob (as in audio-player). Scrubbing input
+             lives on the track, so the knob itself stays non-draggable. */
+          liquidGL({
+            target: "#progress-knob",
+            snapshot: "body",
+            resolution: 2,
+            refraction: 0.145,
+            aberration: 0.6,
+            bevelDepth: 0.219,
+            bevelWidth: 0.122,
+            frost: 0,
+            shadow: true,
+            specular: true,
+            reveal: "none",
+            tilt: false,
+            tiltFactor: 5,
+            tiltEase: 400,
+            magnify: 1.35,
+            tint: "rgba(0, 0, 0, 0)",
+            helper: false,
+          });
+        }
+
+        initializeliquidGL();
+
+        /* Baseline the pulse on the panel's configured values (guarded -
+           the WebGL-unavailable fallback returns DOM nodes instead). */
+        if (glassEffect && glassEffect.options) {
+          glassEffect._audioBase = {
+            refraction: glassEffect.options.refraction,
+            bevelWidth: glassEffect.options.bevelWidth,
+          };
+        }
+
+        /* The fill/knob move continuously - keep that region of the
+           snapshot live so the glass doesn't carry a stale baked-in copy. */
+        liquidGL.registerDynamic([progressTrack]);
+
+        window.addEventListener("load", () => {
+          liquidGL.syncWith();
+        });
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,1121 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chromatic Aberration - liquidGL – Liquid Glass - NaughtyDuk©</title>
+    <link rel="icon" href="/assets/images/favicon.ico" />
+    <meta
+      name="description"
+      content="A Liquid Glass lens with chromatic aberration, dispersing red and blue colour channels at the bevel edge."
+    />
+    <meta
+      name="keywords"
+      content="liquidGL, webGL, webGPU, liquid glass, chromatic aberration, dispersion, real-time, refraction, NaughtyDuk©"
+    />
+    <meta name="author" content="NaughtyDuk©" />
+    <meta name="robots" content="index, follow" />
+    <meta name="googlebot" content="index, follow" />
+    <meta
+      property="og:image"
+      content="/assets/images/_0002_chromatic-aberration.jpg"
+    />
+    <meta
+      property="og:title"
+      content="Chromatic Aberration - liquidGL – Liquid Glass - NaughtyDuk©"
+    />
+    <meta
+      property="og:description"
+      content="A Liquid Glass lens with chromatic aberration, dispersing red and blue colour channels at the bevel edge."
+    />
+    <meta
+      property="og:url"
+      content="https://liquidgl.naughtyduk.com/demos/chromatic-aberration.html"
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="en_GB" />
+    <meta property="og:site_name" content="liquidGL" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta
+      name="twitter:title"
+      content="Chromatic Aberration - liquidGL – Liquid Glass - NaughtyDuk©"
+    />
+    <meta
+      name="twitter:description"
+      content="A Liquid Glass lens with chromatic aberration, dispersing red and blue colour channels at the bevel edge."
+    />
+    <meta
+      name="twitter:image"
+      content="/assets/images/_0002_chromatic-aberration.jpg"
+    />
+    <meta
+      name="twitter:url"
+      content="https://liquidgl.naughtyduk.com/demos/chromatic-aberration.html"
+    />
+    <style>
+      :root {
+        --text-color: #333333;
+        --bg-color: #ececec;
+        --secondary-text: rgba(0, 0, 0, 0.5);
+        scroll-behavior: auto;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
+          Arial, sans-serif;
+        background-color: var(--bg-color);
+        color: var(--text-color);
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        line-height: 1.5;
+        height: 100svh;
+        overflow: hidden;
+      }
+
+      @media (max-width: 768px) {
+        .lil-gui {
+          display: none !important;
+        }
+      }
+
+      .bg-video {
+        position: fixed;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        z-index: 0;
+        -webkit-user-drag: none;
+        -webkit-user-select: none;
+        user-select: none;
+      }
+
+      .bg-scrim {
+        position: fixed;
+        inset: 0;
+        z-index: 1;
+        background: rgba(10, 10, 12, 0.35);
+        pointer-events: none;
+      }
+
+      /* Global Navigation Styles */
+      .global-nav {
+        position: fixed;
+        top: 1rem;
+        left: 1rem;
+        z-index: 10000;
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
+          Arial, sans-serif;
+      }
+
+      .nav-container {
+        background: #120d0e;
+        backdrop-filter: blur(16px);
+        border-radius: 12px;
+        border: 0.5px solid #1e1e20;
+        overflow: hidden;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 4px 16px rgb(0 0 0 / 20%);
+      }
+
+      .nav-toggle {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 16px;
+        background: transparent;
+        border: none;
+        color: #f0f0f0;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 500;
+        width: 100%;
+        text-align: left;
+        transition: all 0.2s ease;
+      }
+
+      .nav-toggle:hover {
+        background: rgb(21 21 25);
+      }
+
+      .nav-toggle svg {
+        width: 16px;
+        height: 16px;
+        fill: currentColor;
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      .nav-container.expanded .nav-toggle svg {
+        transform: rotate(180deg);
+      }
+
+      .nav-menu {
+        max-height: 0;
+        overflow: scroll;
+        transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      .nav-container.expanded .nav-menu {
+        max-height: 420px;
+        overflow-y: auto;
+      }
+
+      .nav-item {
+        display: block;
+        padding: 10px 16px;
+        color: #88888f;
+        text-decoration: none;
+        font-size: 13px;
+        font-weight: 400;
+        transition: all 0.2s ease;
+        border-top: 0.5px solid #1e1e20;
+        position: relative;
+        cursor: pointer;
+      }
+
+      .nav-item:hover {
+        background: rgb(21 21 25);
+        color: #f0f0f0;
+      }
+
+      .nav-item.active {
+        color: #f0f0f0;
+        background: rgb(21 21 25);
+      }
+
+      .nav-item.active::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background: #fafafa;
+      }
+
+      @media (max-width: 768px) {
+        .global-nav {
+          top: 0.5rem;
+          left: 0.5rem;
+        }
+
+        .nav-toggle {
+          padding: 10px 14px;
+          font-size: 13px;
+        }
+
+        .nav-item {
+          padding: 8px 14px;
+          font-size: 12px;
+        }
+      }
+
+      /* --- Stage; centre holds the liquidGL lens --- */
+      .stage {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        pointer-events: none;
+        z-index: 100;
+        padding: 1rem;
+      }
+
+      /* Keep lens content above the fixed WebGL canvas */
+      .glass > * {
+        position: relative;
+        z-index: 2;
+      }
+
+      /* --- Demo disclaimer --- */
+      .demo-disclaimer {
+        position: fixed;
+        bottom: 2rem;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 100%;
+        max-width: 420px;
+        padding: 0 1rem;
+        text-align: center;
+        text-transform: uppercase;
+        z-index: 10001;
+        pointer-events: none;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        color: rgba(255, 255, 255, 0.92);
+      }
+
+      .demo-disclaimer .disclaimer-feature {
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: 0.02em;
+        margin-bottom: 6px;
+      }
+
+      .demo-disclaimer .disclaimer-note {
+        font-size: 9px;
+        font-weight: 400;
+        letter-spacing: -0.02em;
+        line-height: 1.25;
+        max-width: 280px;
+        color: rgba(255, 255, 255, 0.6);
+      }
+
+      @media (max-width: 640px) {
+        .demo-disclaimer .disclaimer-note {
+          display: none;
+        }
+        .demo-disclaimer {
+          bottom: 1rem !important;
+        }
+      }
+
+      /* --- Speed dial: circular glass puck, 270° instrument gauge --- */
+      .dial-wrap {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 22px;
+        pointer-events: none;
+      }
+
+      .dial {
+        position: relative;
+        width: min(440px, 86vw);
+        height: min(440px, 86vw);
+        border-radius: 50%;
+        overflow: hidden;
+        color: #f0f0f0;
+        pointer-events: auto !important; /* library sets none when draggable: false */
+        user-select: none;
+      }
+
+      .dial-svg {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        overflow: visible;
+      }
+
+      .dial-track {
+        fill: none;
+        stroke: rgba(255, 255, 255, 0.16);
+        stroke-width: 10;
+        stroke-linecap: round;
+      }
+
+      .dial-value {
+        fill: none;
+        stroke: url(#dialGrad);
+        stroke-width: 10;
+        stroke-linecap: round;
+      }
+
+      .dial-tick {
+        stroke: rgba(255, 255, 255, 0.32);
+        stroke-width: 1.5;
+      }
+
+      .dial-tick.major {
+        stroke: rgba(255, 255, 255, 0.6);
+        stroke-width: 2.5;
+      }
+
+      .dial-tick-label {
+        fill: rgba(255, 255, 255, 0.5);
+        font-family: "SFMono-Regular", Menlo, Consolas, monospace;
+        font-size: 11px;
+        font-weight: 700;
+        text-anchor: middle;
+        dominant-baseline: middle;
+      }
+
+      .dial-marker {
+        position: absolute;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background: #eaf6ff;
+        box-shadow:
+          0 0 6px 2px rgba(120, 190, 255, 0.9),
+          0 0 18px 6px rgba(120, 150, 255, 0.6);
+        transform: translate(-50%, -50%);
+        animation: marker-pulse 1.8s ease-in-out infinite;
+      }
+
+      @keyframes marker-pulse {
+        0%,
+        100% {
+          box-shadow:
+            0 0 6px 2px rgba(120, 190, 255, 0.9),
+            0 0 18px 6px rgba(120, 150, 255, 0.6);
+        }
+        50% {
+          box-shadow:
+            0 0 9px 3px rgba(120, 190, 255, 1),
+            0 0 26px 10px rgba(120, 150, 255, 0.75);
+        }
+      }
+
+      .dial-readout {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 2px;
+        padding-bottom: 44px;
+      }
+
+      .dial-live {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: rgba(255, 255, 255, 0.5);
+        margin-bottom: 8px;
+      }
+
+      .dial-live-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: #6bd6ff;
+        box-shadow: 0 0 6px 1px rgba(107, 214, 255, 0.9);
+      }
+
+      .dial-value-num {
+        font-size: 78px;
+        font-weight: 700;
+        letter-spacing: -0.03em;
+        line-height: 1;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .dial-unit {
+        font-size: 14px;
+        font-weight: 700;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: rgba(255, 255, 255, 0.45);
+        margin-top: 5px;
+      }
+
+      /* --- Telltale icons: sit in the flat gap at the bottom of the arc,
+           like dashboard warning lights, blinking independently --- */
+      .dial-status-row {
+        position: absolute;
+        left: 50%;
+        bottom: 15%;
+        transform: translateX(-50%);
+        display: flex;
+        align-items: center;
+        gap: 22px;
+      }
+
+      .dial-status-row img {
+        width: 16px;
+        height: 16px;
+        display: block;
+        animation: telltale-blink 3.2s ease-in-out infinite;
+      }
+
+      .dial-status-row img:nth-child(2) {
+        animation-delay: 0.6s;
+      }
+
+      .dial-status-row img:nth-child(3) {
+        animation-delay: 1.2s;
+      }
+
+      @keyframes telltale-blink {
+        0%,
+        58%,
+        100% {
+          opacity: 0.28;
+          filter: drop-shadow(0 0 0 rgba(120, 190, 255, 0));
+        }
+        20% {
+          opacity: 1;
+          filter: drop-shadow(0 0 6px rgba(120, 190, 255, 0.85));
+        }
+      }
+
+      /* --- HUD connector: thin tether linking the dial to the console --- */
+      .dial-connector {
+        position: relative;
+        width: 1px;
+        height: 20px;
+        transform-origin: top center;
+        background: linear-gradient(
+          rgba(255, 255, 255, 0.32),
+          rgba(255, 255, 255, 0)
+        );
+      }
+
+      .dial-connector::after {
+        content: "";
+        position: absolute;
+        left: 50%;
+        bottom: -3px;
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: #6bd6ff;
+        box-shadow: 0 0 6px 1px rgba(107, 214, 255, 0.85);
+        transform: translateX(-50%);
+      }
+
+      /* --- HUD console: drive-mode pills framed like an instrument panel --- */
+      .hud-panel {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 14px;
+        padding: 18px 30px 16px;
+        pointer-events: none;
+      }
+
+      .hud-corner {
+        position: absolute;
+        width: 10px;
+        height: 10px;
+        border: 1.5px solid rgba(255, 255, 255, 0.32);
+      }
+
+      .hud-corner.tl {
+        top: 0;
+        left: 0;
+        border-right: none;
+        border-bottom: none;
+      }
+
+      .hud-corner.tr {
+        top: 0;
+        right: 0;
+        border-left: none;
+        border-bottom: none;
+      }
+
+      .hud-corner.bl {
+        bottom: 0;
+        left: 0;
+        border-right: none;
+        border-top: none;
+      }
+
+      .hud-corner.br {
+        bottom: 0;
+        right: 0;
+        border-left: none;
+        border-top: none;
+      }
+
+      .hud-label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 9px;
+        font-weight: 800;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: rgba(255, 255, 255, 0.45);
+      }
+
+      .hud-line {
+        width: 16px;
+        height: 1px;
+        background: rgba(255, 255, 255, 0.25);
+      }
+
+      .hud-readout {
+        font-family: "SFMono-Regular", Menlo, Consolas, monospace;
+        font-size: 10px;
+        font-weight: 600;
+        letter-spacing: 0.03em;
+        color: rgba(255, 255, 255, 0.5);
+      }
+
+      .hud-readout strong {
+        color: rgba(255, 255, 255, 0.85);
+        font-weight: 700;
+      }
+
+      /* --- Drive mode pills --- */
+      .mode-pills {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        pointer-events: none;
+      }
+
+      .pill-divider {
+        width: 1px;
+        height: 18px;
+        background: rgba(255, 255, 255, 0.14);
+      }
+
+      .mode-pill {
+        position: relative;
+        width: 78px;
+        height: 34px;
+        border-radius: 999px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: rgba(255, 255, 255, 0.7);
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        cursor: pointer;
+        pointer-events: auto !important;
+        user-select: none;
+        transition: color 0.25s ease;
+      }
+
+      .mode-pill.active {
+        color: #eaf6ff;
+        text-shadow: 0 0 10px rgba(120, 190, 255, 0.7);
+      }
+
+      .mode-pill::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        border-radius: 999px;
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        opacity: 0;
+        transition: opacity 0.25s ease;
+        pointer-events: none;
+      }
+
+      .mode-pill.active::after {
+        opacity: 1;
+        border-color: rgba(120, 190, 255, 0.5);
+        box-shadow: 0 0 14px rgba(120, 190, 255, 0.35) inset;
+      }
+    </style>
+  </head>
+  <body>
+    <video
+      class="bg-video"
+      src="/assets/videos/lgl-chromatic-aberration-opt.mp4"
+      autoplay
+      loop
+      muted
+      playsinline
+      aria-hidden="true"
+    ></video>
+    <div class="bg-scrim"></div>
+
+    <!-- Global Navigation -->
+    <nav class="global-nav">
+      <div class="nav-container">
+        <button
+          class="nav-toggle"
+          aria-expanded="false"
+          aria-label="Toggle navigation menu"
+        >
+          <span>Demos</span>
+          <svg viewBox="0 0 16 16">
+            <path d="M8 11L3 6h10l-5 5z" />
+          </svg>
+        </button>
+        <div data-lenis-prevent class="nav-menu">
+          <a href="../index.html" class="nav-item">Index</a>
+          <a href="audio-player.html" class="nav-item">Audio Player</a>
+          <a href="menu-bar.html" class="nav-item">Menu Bar</a>
+          <a href="ai-search.html" class="nav-item">AI Search</a>
+          <a href="multiple-lenses.html" class="nav-item">Multiple Lenses</a>
+          <a href="chromatic-aberration.html" class="nav-item active"
+            >Chromatic Aberration</a
+          >
+          <a href="fluid-interaction.html" class="nav-item"
+            >Fluid Interaction</a
+          >
+          <a href="frost-specular.html" class="nav-item">Frost & Specular</a>
+          <a href="tinted-glass.html" class="nav-item">Tinted Glass</a>
+          <a href="stacked-lenses.html" class="nav-item">Stacked Lenses</a>
+          <a href="true-refraction.html" class="nav-item">True Refraction</a>
+        </div>
+      </div>
+    </nav>
+
+    <div class="stage">
+      <div class="dial-wrap">
+        <div class="dial glass" id="lens" role="img" aria-label="Speed dial">
+          <svg
+            class="dial-svg"
+            id="dial-svg"
+            viewBox="0 0 320 320"
+            aria-hidden="true"
+          >
+            <defs>
+              <linearGradient id="dialGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="#5fd0ff" />
+                <stop offset="55%" stop-color="#7c8bff" />
+                <stop offset="100%" stop-color="#ff5f9e" />
+              </linearGradient>
+            </defs>
+            <path class="dial-track" id="dial-track" />
+            <path class="dial-value" id="dial-value" />
+            <g id="dial-ticks"></g>
+          </svg>
+          <div class="dial-marker" id="dial-marker"></div>
+          <div class="dial-readout">
+            <span class="dial-live">
+              <span class="dial-live-dot"></span>Drive
+            </span>
+            <span class="dial-value-num" id="dial-number">0</span>
+            <span class="dial-unit">km/h</span>
+          </div>
+          <div class="dial-status-row">
+            <img
+              src="/assets/images/lucide-gauge.svg"
+              alt=""
+              aria-hidden="true"
+            />
+            <img
+              src="/assets/images/lucide-zap.svg"
+              alt=""
+              aria-hidden="true"
+            />
+            <img
+              src="/assets/images/lucide-shield-check.svg"
+              alt=""
+              aria-hidden="true"
+            />
+          </div>
+        </div>
+
+        <span class="dial-connector" aria-hidden="true"></span>
+
+        <div class="hud-panel">
+          <span class="hud-corner tl" aria-hidden="true"></span>
+          <span class="hud-corner tr" aria-hidden="true"></span>
+          <span class="hud-corner bl" aria-hidden="true"></span>
+          <span class="hud-corner br" aria-hidden="true"></span>
+
+          <div class="hud-label">
+            <span class="hud-line" aria-hidden="true"></span>
+            Drive Mode
+            <span class="hud-line" aria-hidden="true"></span>
+          </div>
+
+          <div class="mode-pills">
+            <button class="mode-pill glass" id="mode-eco" type="button">
+              Eco
+            </button>
+            <span class="pill-divider" aria-hidden="true"></span>
+            <button
+              class="mode-pill glass active"
+              id="mode-sport"
+              type="button"
+            >
+              Sport
+            </button>
+            <span class="pill-divider" aria-hidden="true"></span>
+            <button class="mode-pill glass" id="mode-track" type="button">
+              Track
+            </button>
+          </div>
+
+          <div class="hud-readout" id="hud-readout">
+            Target <strong>0</strong> km/h &middot; <strong>0k</strong> rpm
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="demo-disclaimer">
+      <p class="disclaimer-feature">
+        Chromatic aberration - RGB channel dispersion
+      </p>
+      <p class="disclaimer-note">
+        Speed and RPM readouts are simulated for illustration purposes only and
+        are not live vehicle telemetry. Always obey local speed limits.
+      </p>
+    </div>
+
+    <!-- Libraries -->
+    <script
+      src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"
+      integrity="sha384-HOvlOYPIs/zjoIkWUGXkVmXsjr8GuZLV+Q+rcPwmJOVZVpvTSXQChiN4t9Euv9Vc"
+      crossorigin="anonymous"
+    ></script>
+
+    <!-- Scripts -->
+    <script src="/scripts/liquidGL.js"></script>
+    <script src="/scripts/liquidGL-helper.js"></script>
+    <script>
+      let glassEffect;
+
+      document.addEventListener("DOMContentLoaded", () => {
+        /* Global Navigation Setup */
+        const navToggle = document.querySelector(".nav-toggle");
+        const navContainer = document.querySelector(".nav-container");
+
+        if (navToggle && navContainer) {
+          navToggle.addEventListener("click", () => {
+            const isExpanded = navContainer.classList.contains("expanded");
+            navContainer.classList.toggle("expanded");
+            navToggle.setAttribute("aria-expanded", !isExpanded);
+          });
+
+          // Close navigation when clicking outside
+          document.addEventListener("click", (e) => {
+            if (!navContainer.contains(e.target)) {
+              navContainer.classList.remove("expanded");
+              navToggle.setAttribute("aria-expanded", "false");
+            }
+          });
+
+          // Close navigation when pressing Escape
+          document.addEventListener("keydown", (e) => {
+            if (
+              e.key === "Escape" &&
+              navContainer.classList.contains("expanded")
+            ) {
+              navContainer.classList.remove("expanded");
+              navToggle.setAttribute("aria-expanded", "false");
+            }
+          });
+        }
+
+        /* --- Speed dial: 270° instrument gauge, gap centred at the bottom ---
+           Angle convention here: 0deg = 12 o'clock, clockwise positive.
+           Sweep runs from -135deg to +135deg (270deg total), leaving a
+           90deg gap centred on the 6 o'clock position. */
+        const CX = 160,
+          CY = 160,
+          R = 130;
+        const START_ANGLE = -135;
+        const END_ANGLE = 135;
+        const MAX_SPEED = 220;
+
+        const polar = (angleDeg, radius) => {
+          const rad = (angleDeg * Math.PI) / 180;
+          return {
+            x: CX + radius * Math.sin(rad),
+            y: CY - radius * Math.cos(rad),
+          };
+        };
+
+        const describeArc = (startDeg, endDeg, radius) => {
+          const s = polar(startDeg, radius);
+          const e = polar(endDeg, radius);
+          const largeArc = endDeg - startDeg <= 180 ? 0 : 1;
+          return `M ${s.x} ${s.y} A ${radius} ${radius} 0 ${largeArc} 1 ${e.x} ${e.y}`;
+        };
+
+        const trackPath = document.getElementById("dial-track");
+        const valuePath = document.getElementById("dial-value");
+        const ticksGroup = document.getElementById("dial-ticks");
+        const marker = document.getElementById("dial-marker");
+        const dialNumber = document.getElementById("dial-number");
+        const dialEl = document.getElementById("lens");
+        const hudReadout = document.getElementById("hud-readout");
+
+        const fullArc = describeArc(START_ANGLE, END_ANGLE, R);
+        trackPath.setAttribute("d", fullArc);
+        valuePath.setAttribute("d", fullArc);
+
+        /* Ticks: major every 20 km/h, 4 minors between each */
+        const STEP = 20;
+        const MAJORS = MAX_SPEED / STEP;
+        const MINORS_PER_MAJOR = 4;
+        const totalNotches = MAJORS * MINORS_PER_MAJOR;
+        for (let i = 0; i <= totalNotches; i++) {
+          const isMajor = i % MINORS_PER_MAJOR === 0;
+          const frac = i / totalNotches;
+          const angle = START_ANGLE + frac * (END_ANGLE - START_ANGLE);
+          const outer = polar(angle, R + 16);
+          const inner = polar(angle, isMajor ? R + 4 : R + 8);
+          const line = document.createElementNS(
+            "http://www.w3.org/2000/svg",
+            "line",
+          );
+          line.setAttribute("x1", inner.x);
+          line.setAttribute("y1", inner.y);
+          line.setAttribute("x2", outer.x);
+          line.setAttribute("y2", outer.y);
+          line.setAttribute("class", isMajor ? "dial-tick major" : "dial-tick");
+          ticksGroup.appendChild(line);
+
+          if (isMajor) {
+            const labelPos = polar(angle, R - 26);
+            const text = document.createElementNS(
+              "http://www.w3.org/2000/svg",
+              "text",
+            );
+            text.setAttribute("x", labelPos.x);
+            text.setAttribute("y", labelPos.y);
+            text.setAttribute("class", "dial-tick-label");
+            text.textContent = String((i / MINORS_PER_MAJOR) * STEP);
+            ticksGroup.appendChild(text);
+          }
+        }
+
+        /* Reveal the value arc via stroke-dashoffset, driven off fraction-of-max */
+        const arcLength = valuePath.getTotalLength();
+        valuePath.style.strokeDasharray = `${arcLength}`;
+        valuePath.style.strokeDashoffset = `${arcLength}`;
+
+        const dialRect = () => dialEl.getBoundingClientRect();
+
+        const setSpeed = (speed) => {
+          const fraction = Math.max(0, Math.min(1, speed / MAX_SPEED));
+          valuePath.style.strokeDashoffset = `${arcLength * (1 - fraction)}`;
+          dialNumber.textContent = Math.round(speed);
+          const angle = START_ANGLE + fraction * (END_ANGLE - START_ANGLE);
+          const pos = polar(angle, R);
+          const rect = dialRect();
+          const scaleX = rect.width / 320;
+          const scaleY = rect.height / 320;
+          marker.style.left = `${pos.x * scaleX}px`;
+          marker.style.top = `${pos.y * scaleY}px`;
+
+          /* Rev counter readout, derived from speed for a believable
+             dashboard pairing without a second full gauge */
+          const rpm = 1200 + speed * 21;
+          hudReadout.innerHTML = `Target <strong>${Math.round(
+            speed,
+          )}</strong> km/h &middot; <strong>${(rpm / 1000).toFixed(
+            1,
+          )}k</strong> rpm`;
+        };
+
+        const speedProxy = { value: 0 };
+        setSpeed(0);
+
+        /* Drive modes: clicking a pill eases the dial to a new target speed */
+        const modes = {
+          "mode-eco": 62,
+          "mode-sport": 148,
+          "mode-track": 208,
+        };
+        const pills = Object.keys(modes).map((id) =>
+          document.getElementById(id),
+        );
+
+        const goToSpeed = (target, duration = 1.4) => {
+          gsap.to(speedProxy, {
+            value: target,
+            duration,
+            ease: "power2.inOut",
+            onUpdate: () => setSpeed(speedProxy.value),
+          });
+        };
+
+        /* Drive modes also retune the dial's own glass: Eco calms the
+           refraction/bevel/aberration down, Track pushes them further than
+           the Sport baseline. Sport keeps the values liquidGL was
+           initialised with. */
+        const glassModes = {
+          "mode-eco": {
+            refraction: 0.022,
+            aberration: 0.24,
+            bevelDepth: 0.07,
+            bevelWidth: 0.137,
+          },
+          "mode-sport": {
+            refraction: 0.022,
+            aberration: 0.75,
+            bevelDepth: 0.13,
+            bevelWidth: 0.22,
+          },
+          "mode-track": {
+            refraction: 0.1,
+            aberration: 0.75,
+            bevelDepth: 0.19,
+            bevelWidth: 0.306,
+          },
+        };
+        const glassProxy = { ...glassModes["mode-sport"] };
+
+        /* The helper GUI's controllers read from lens.options directly but
+           only refresh their display on user input, so we have to nudge
+           them manually while our own tween drives the same values. */
+        const findDialGuiEntry = () =>
+          (window.__liquidGLHelperGUIs__ || []).find(
+            (entry) => glassEffect && entry.lenses.includes(glassEffect),
+          );
+        const refreshDialGui = () => {
+          const entry = findDialGuiEntry();
+          if (entry) {
+            entry.gui.controllersRecursive().forEach((c) => c.updateDisplay());
+          }
+        };
+
+        const goToGlassMode = (id, duration = 1.2) => {
+          const target = glassModes[id];
+          if (!target || !glassEffect) return;
+          gsap.to(glassProxy, {
+            ...target,
+            duration,
+            ease: "power2.inOut",
+            onUpdate: () => {
+              glassEffect.options.refraction = glassProxy.refraction;
+              glassEffect.options.aberration = glassProxy.aberration;
+              glassEffect.options.bevelDepth = glassProxy.bevelDepth;
+              glassEffect.options.bevelWidth = glassProxy.bevelWidth;
+              refreshDialGui();
+            },
+          });
+        };
+
+        pills.forEach((pill) => {
+          pill.addEventListener("click", () => {
+            pills.forEach((p) => p.classList.toggle("active", p === pill));
+            goToSpeed(modes[pill.id]);
+            goToGlassMode(pill.id);
+          });
+        });
+
+        /* Gentle idle drift so the needle never looks frozen once settled */
+        setInterval(() => {
+          const activePill = pills.find((p) => p.classList.contains("active"));
+          const base = activePill ? modes[activePill.id] : 148;
+          const jitter = base + (Math.random() - 0.5) * 10;
+          goToSpeed(jitter, 1.1);
+        }, 2600);
+
+        window.addEventListener("resize", () => setSpeed(speedProxy.value));
+
+        /* Entrance animation: dial fades/scales in, track and value arcs draw
+           in, ticks stagger, telltales fade up, the HUD console frames
+           itself in, then mode pills spring in and the readout settles */
+        gsap.set(valuePath, { strokeDashoffset: arcLength });
+        gsap.set(".dial-tick", { opacity: 0 });
+        gsap.set(".dial-status-row", { opacity: 0 });
+        gsap.set(".dial-connector", { opacity: 0, scaleY: 0 });
+        gsap.set(".hud-corner", { opacity: 0 });
+        gsap.set(".hud-label", { opacity: 0, y: -6 });
+        gsap.set(".mode-pill", { opacity: 0, y: 14 });
+        gsap.set(".pill-divider", { opacity: 0 });
+        gsap.set("#hud-readout", { opacity: 0, y: 6 });
+        gsap.set(marker, { opacity: 0 });
+
+        const tl = gsap.timeline({ delay: 0.15 });
+        tl.from("#lens", {
+          opacity: 0,
+          scale: 0.86,
+          duration: 0.8,
+          ease: "power3.out",
+        })
+          .to(
+            ".dial-tick",
+            { opacity: 1, duration: 0.5, stagger: 0.012, ease: "power1.out" },
+            "-=0.35",
+          )
+          .to(marker, { opacity: 1, duration: 0.3 }, "-=0.2")
+          .add(() => goToSpeed(modes["mode-sport"], 1.6), "-=0.1")
+          .to(
+            ".dial-status-row",
+            { opacity: 1, duration: 0.5, ease: "power1.out" },
+            "-=0.9",
+          )
+          .to(
+            ".dial-connector",
+            { opacity: 1, scaleY: 1, duration: 0.4, ease: "power2.out" },
+            "-=0.7",
+          )
+          .to(
+            ".hud-corner",
+            { opacity: 1, duration: 0.35, stagger: 0.05 },
+            "-=0.3",
+          )
+          .to(
+            ".hud-label",
+            { opacity: 1, y: 0, duration: 0.4, ease: "power2.out" },
+            "-=0.25",
+          )
+          .to(
+            ".mode-pill",
+            {
+              opacity: 1,
+              y: 0,
+              duration: 0.5,
+              stagger: 0.1,
+              ease: "back.out(1.8)",
+            },
+            "-=0.1",
+          )
+          .to(".pill-divider", { opacity: 1, duration: 0.3 }, "-=0.2")
+          .to(
+            "#hud-readout",
+            { opacity: 1, y: 0, duration: 0.4, ease: "power2.out" },
+            "-=0.1",
+          );
+
+        function initializeliquidGL() {
+          /* Speed dial: the feature showcase lens. Its own glass tuning
+             is what the drive-mode pills retune above. */
+          glassEffect = liquidGL({
+            target: "#lens",
+            snapshot: "body",
+            resolution: 2,
+            refraction: glassModes["mode-sport"].refraction,
+            aberration: glassModes["mode-sport"].aberration,
+            bevelDepth: glassModes["mode-sport"].bevelDepth,
+            bevelWidth: glassModes["mode-sport"].bevelWidth,
+            frost: 0,
+            shadow: true,
+            specular: false,
+            reveal: "none",
+            tilt: false,
+            draggable: false,
+            magnify: 1.12,
+            tint: null,
+            helper: true,
+          });
+
+          /* Drive-mode pills: a separate liquidGL() call so they get their
+             own options object (and can carry a dark tint) independent of
+             the dial's glass. */
+          liquidGL({
+            target: ".mode-pill",
+            snapshot: "body",
+            resolution: 2,
+            refraction: 0.01,
+            aberration: 0.15,
+            bevelDepth: 0.09,
+            bevelWidth: 0.16,
+            frost: 1.5,
+            shadow: true,
+            specular: false,
+            reveal: "none",
+            tilt: false,
+            draggable: false,
+            magnify: 1.15,
+            tint: "rgba(4, 6, 10, 0.55)",
+            helper: false,
+          });
+        }
+
+        initializeliquidGL();
+
+        window.addEventListener("load", () => {
+          liquidGL.syncWith();
+        });
+      });
+    </script>
+  </body>
+</html>

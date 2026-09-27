@@ -1,0 +1,807 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Fluid Interaction - liquidGL – Liquid Glass - NaughtyDuk©</title>
+    <link rel="icon" href="/assets/images/favicon.ico" />
+    <meta
+      name="description"
+      content="A Liquid Glass surface with viscous, touch-aware fluid interaction that distorts as the cursor moves across it."
+    />
+    <meta
+      name="keywords"
+      content="liquidGL, webGL, webGPU, liquid glass, fluid interaction, viscosity, distortion, real-time, refraction, NaughtyDuk©"
+    />
+    <meta name="author" content="NaughtyDuk©" />
+    <meta name="robots" content="index, follow" />
+    <meta name="googlebot" content="index, follow" />
+    <meta
+      property="og:image"
+      content="/assets/images/_0003_fluid-interaction.jpg"
+    />
+    <meta
+      property="og:title"
+      content="Fluid Interaction - liquidGL – Liquid Glass - NaughtyDuk©"
+    />
+    <meta
+      property="og:description"
+      content="A Liquid Glass surface with viscous, touch-aware fluid interaction that distorts as the cursor moves across it."
+    />
+    <meta
+      property="og:url"
+      content="https://liquidgl.naughtyduk.com/demos/fluid-interaction.html"
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="en_GB" />
+    <meta property="og:site_name" content="liquidGL" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta
+      name="twitter:title"
+      content="Fluid Interaction - liquidGL – Liquid Glass - NaughtyDuk©"
+    />
+    <meta
+      name="twitter:description"
+      content="A Liquid Glass surface with viscous, touch-aware fluid interaction that distorts as the cursor moves across it."
+    />
+    <meta
+      name="twitter:image"
+      content="/assets/images/_0003_fluid-interaction.jpg"
+    />
+    <meta
+      name="twitter:url"
+      content="https://liquidgl.naughtyduk.com/demos/fluid-interaction.html"
+    />
+    <style>
+      :root {
+        --text-color: #333333;
+        --bg-color: #ececec;
+        --secondary-text: rgba(0, 0, 0, 0.5);
+        --frame-inset-y: clamp(52px, 9vh, 92px);
+        --frame-inset-x: clamp(20px, 5vw, 60px);
+        scroll-behavior: auto;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
+          Arial, sans-serif;
+        background-color: var(--bg-color);
+        color: var(--text-color);
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        line-height: 1.5;
+        height: 100svh;
+        overflow: hidden;
+      }
+
+      @media (max-width: 768px) {
+        .lil-gui {
+          display: none !important;
+        }
+      }
+
+      .bg-video {
+        position: fixed;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        z-index: 0;
+        -webkit-user-drag: none;
+        -webkit-user-select: none;
+        user-select: none;
+      }
+
+      .bg-scrim {
+        position: fixed;
+        inset: 0;
+        z-index: 1;
+        background: rgba(10, 10, 12, 0.35);
+        pointer-events: none;
+      }
+
+      /* Global Navigation Styles */
+      .global-nav {
+        position: fixed;
+        top: 1rem;
+        left: 1rem;
+        z-index: 10000;
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
+          Arial, sans-serif;
+      }
+
+      .nav-container {
+        background: #120d0e;
+        backdrop-filter: blur(16px);
+        border-radius: 12px;
+        border: 0.5px solid #1e1e20;
+        overflow: hidden;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      .nav-toggle {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 16px;
+        background: transparent;
+        border: none;
+        color: #f0f0f0;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 500;
+        width: 100%;
+        text-align: left;
+        transition: all 0.2s ease;
+      }
+
+      .nav-toggle:hover {
+        background: rgb(21 21 25);
+      }
+
+      .nav-toggle svg {
+        width: 16px;
+        height: 16px;
+        fill: currentColor;
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      .nav-container.expanded .nav-toggle svg {
+        transform: rotate(180deg);
+      }
+
+      .nav-menu {
+        max-height: 0;
+        overflow: scroll;
+        transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      .nav-container.expanded .nav-menu {
+        max-height: 420px;
+        overflow-y: auto;
+      }
+
+      .nav-item {
+        display: block;
+        padding: 10px 16px;
+        color: #88888f;
+        text-decoration: none;
+        font-size: 13px;
+        font-weight: 400;
+        transition: all 0.2s ease;
+        border-top: 0.5px solid #1e1e20;
+        position: relative;
+        cursor: pointer;
+      }
+
+      .nav-item:hover {
+        background: rgb(21 21 25);
+        color: #f0f0f0;
+      }
+
+      .nav-item.active {
+        color: #f0f0f0;
+        background: rgb(21 21 25);
+      }
+
+      .nav-item.active::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background: #fafafa;
+      }
+
+      @media (max-width: 768px) {
+        .global-nav {
+          top: 0.5rem;
+          left: 0.5rem;
+        }
+
+        .nav-toggle {
+          padding: 10px 14px;
+          font-size: 13px;
+        }
+
+        .nav-item {
+          padding: 8px 14px;
+          font-size: 12px;
+        }
+      }
+
+      /* --- Stage; centre holds the liquidGL lens --- */
+      .stage {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        pointer-events: none;
+        z-index: 100;
+        padding: 1rem;
+      }
+
+      /* Keep lens content above the fixed WebGL canvas */
+      .glass > * {
+        position: relative;
+        z-index: 2;
+        border-radius: 12px;
+      }
+
+      /* --- Demo disclaimer --- */
+      .demo-disclaimer {
+        position: fixed;
+        bottom: 2rem;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 100%;
+        max-width: 420px;
+        padding: 0 1rem;
+        text-align: center;
+        text-transform: uppercase;
+        z-index: 10001;
+        pointer-events: none;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        color: rgba(255, 255, 255, 0.92);
+      }
+
+      .demo-disclaimer .disclaimer-feature {
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: 0.02em;
+        margin-bottom: 6px;
+      }
+
+      .demo-disclaimer .disclaimer-note {
+        font-size: 9px;
+        font-weight: 400;
+        letter-spacing: -0.02em;
+        line-height: 1.25;
+        max-width: 280px;
+        color: rgba(255, 255, 255, 0.6);
+      }
+
+      @media (max-width: 640px) {
+        .demo-disclaimer .disclaimer-note {
+          display: none;
+        }
+        .demo-disclaimer {
+          bottom: 1rem !important;
+        }
+      }
+
+      /* --- HUD viewport housing: four separate bars form a picture-frame
+           bezel flush with the browser edges, leaving a genuine open window
+           in the middle. The window has no material behind it at all, so
+           the glass lens sitting there is never occluded by the housing —
+           it was previously one solid box with the lens as a child, which
+           meant the housing's own background painted straight through the
+           "gap" since the lens only clears its own background, not its
+           parent's. Four independent bars fixes that at the source. */
+      .hud-shell {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: min(860px, 92vw);
+        height: min(500px, 76vh);
+        z-index: 100;
+        pointer-events: none;
+      }
+
+      .hud-bar {
+        position: absolute;
+      }
+
+      .hud-bar.top {
+        top: 0;
+        left: 0;
+        right: 0;
+        height: var(--frame-inset-y);
+        display: flex;
+        align-items: center;
+      }
+
+      .hud-bar.bottom {
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: var(--frame-inset-y);
+        display: flex;
+        align-items: center;
+      }
+
+      .hud-bar.left {
+        top: var(--frame-inset-y);
+        bottom: var(--frame-inset-y);
+        left: 0;
+        width: var(--frame-inset-x);
+      }
+
+      .hud-bar.right {
+        top: var(--frame-inset-y);
+        bottom: var(--frame-inset-y);
+        right: 0;
+        width: var(--frame-inset-x);
+      }
+
+      /* Corner brackets sit at the four inner corners of the open window,
+         straddling where the bars meet it — classic viewfinder detailing */
+      .frame-notch {
+        position: absolute;
+        width: 11px;
+        height: 11px;
+        border: 1.5px solid rgba(232, 197, 107, 0.55);
+      }
+
+      .frame-notch.tl {
+        top: calc(var(--frame-inset-y) - 1px);
+        left: calc(var(--frame-inset-x) - 1px);
+        border-right: none;
+        border-bottom: none;
+      }
+      .frame-notch.tr {
+        top: calc(var(--frame-inset-y) - 1px);
+        right: calc(var(--frame-inset-x) - 1px);
+        border-left: none;
+        border-bottom: none;
+      }
+      .frame-notch.bl {
+        bottom: calc(var(--frame-inset-y) - 1px);
+        left: calc(var(--frame-inset-x) - 1px);
+        border-right: none;
+        border-top: none;
+      }
+      .frame-notch.br {
+        bottom: calc(var(--frame-inset-y) - 1px);
+        right: calc(var(--frame-inset-x) - 1px);
+        border-left: none;
+        border-top: none;
+      }
+
+      .frame-bar {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-family: "SFMono-Regular", Menlo, Consolas, monospace;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        padding: 0 var(--frame-inset-x);
+      }
+
+      .hud-bar.top .frame-bar {
+        color: #e8c56b;
+      }
+
+      .hud-bar.bottom .frame-bar {
+        color: rgba(255, 255, 255, 0.4);
+      }
+
+      .frame-line {
+        flex: 1;
+        height: 1px;
+        background: currentColor;
+        opacity: 0.35;
+      }
+
+      .frame-tag {
+        white-space: nowrap;
+      }
+
+      .frame-tag.live {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+      }
+
+      .frame-dot {
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: #6bd6ff;
+        box-shadow: 0 0 6px 1px rgba(107, 214, 255, 0.9);
+      }
+
+      /* --- The viewport itself: the actual liquidGL target, sized to
+           exactly fill the open window between the four bars --- */
+      .fluid-lens {
+        position: absolute;
+        top: var(--frame-inset-y);
+        bottom: var(--frame-inset-y);
+        left: var(--frame-inset-x);
+        right: var(--frame-inset-x);
+        border-radius: 6px;
+        overflow: hidden;
+        pointer-events: auto !important;
+      }
+
+      .lens-hud {
+        position: absolute;
+        z-index: 2;
+        font-family: "SFMono-Regular", Menlo, Consolas, monospace;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: rgba(255, 255, 255, 0.5);
+        line-height: 1.3;
+      }
+
+      .lens-hud strong {
+        display: block;
+        margin-top: 3px;
+        font-size: 16px;
+        font-weight: 700;
+        letter-spacing: -0.01em;
+        color: #eaf6ff;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .lens-hud.tl {
+        top: 16px;
+        left: 18px;
+      }
+      .lens-hud.tr {
+        top: 16px;
+        right: 18px;
+        text-align: right;
+      }
+      .lens-hud.bl {
+        bottom: 16px;
+        left: 18px;
+      }
+      .lens-hud.br {
+        bottom: 16px;
+        right: 18px;
+        text-align: right;
+      }
+
+      .lens-center {
+        position: absolute;
+        inset: 0;
+        z-index: 2;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        text-align: center;
+        color: #f0f0f0;
+        pointer-events: none;
+      }
+
+      .lens-eyebrow {
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: rgba(255, 255, 255, 0.55);
+      }
+
+      .lens-title {
+        font-size: 24px;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+      }
+
+      .lens-hint {
+        font-size: 10px;
+        letter-spacing: 0.04em;
+        color: rgba(255, 255, 255, 0.45);
+        text-transform: uppercase;
+      }
+
+      @media (max-width: 640px) {
+        .frame-bar {
+          font-size: 8px;
+          gap: 6px;
+        }
+        .lens-hud {
+          font-size: 8px;
+        }
+        .lens-hud strong {
+          font-size: 13px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <video
+      class="bg-video"
+      src="/assets/videos/lgl-fluid-interaction-opt.mp4"
+      autoplay
+      loop
+      muted
+      playsinline
+      aria-hidden="true"
+    ></video>
+    <div class="bg-scrim"></div>
+
+    <!-- Global Navigation -->
+    <nav class="global-nav">
+      <div class="nav-container">
+        <button
+          class="nav-toggle"
+          aria-expanded="false"
+          aria-label="Toggle navigation menu"
+        >
+          <span>Demos</span>
+          <svg viewBox="0 0 16 16">
+            <path d="M8 11L3 6h10l-5 5z" />
+          </svg>
+        </button>
+        <div data-lenis-prevent class="nav-menu">
+          <a href="../index.html" class="nav-item">Index</a>
+          <a href="audio-player.html" class="nav-item">Audio Player</a>
+          <a href="menu-bar.html" class="nav-item">Menu Bar</a>
+          <a href="ai-search.html" class="nav-item">AI Search</a>
+          <a href="multiple-lenses.html" class="nav-item">Multiple Lenses</a>
+          <a href="chromatic-aberration.html" class="nav-item"
+            >Chromatic Aberration</a
+          >
+          <a href="fluid-interaction.html" class="nav-item active"
+            >Fluid Interaction</a
+          >
+          <a href="frost-specular.html" class="nav-item">Frost & Specular</a>
+          <a href="tinted-glass.html" class="nav-item">Tinted Glass</a>
+          <a href="stacked-lenses.html" class="nav-item">Stacked Lenses</a>
+          <a href="true-refraction.html" class="nav-item">True Refraction</a>
+        </div>
+      </div>
+    </nav>
+
+    <div class="hud-shell" id="hud-frame">
+      <div class="hud-bar top">
+        <div class="frame-bar">
+          <span class="frame-tag">ROV&#8209;04</span>
+          <span class="frame-line" aria-hidden="true"></span>
+          <span class="frame-tag">FLUID VIEWPORT</span>
+          <span class="frame-line" aria-hidden="true"></span>
+          <span class="frame-tag live"
+            ><span class="frame-dot"></span>Live</span
+          >
+        </div>
+      </div>
+
+      <div class="hud-bar bottom">
+        <div class="frame-bar">
+          <span class="frame-tag">CAM&#8209;02</span>
+          <span class="frame-line" aria-hidden="true"></span>
+          <span class="frame-tag" id="frame-coords"
+            >X 0.00 &middot; Y 0.00</span
+          >
+        </div>
+      </div>
+
+      <div class="hud-bar left"></div>
+      <div class="hud-bar right"></div>
+
+      <span class="frame-notch tl" aria-hidden="true"></span>
+      <span class="frame-notch tr" aria-hidden="true"></span>
+      <span class="frame-notch bl" aria-hidden="true"></span>
+      <span class="frame-notch br" aria-hidden="true"></span>
+
+      <div class="fluid-lens glass" id="lens">
+        <div class="lens-hud tl">Depth<strong id="hud-depth">0m</strong></div>
+        <div class="lens-hud tr">
+          Temp<strong id="hud-temp">0&deg;C</strong>
+        </div>
+        <div class="lens-hud bl">
+          Viscosity<strong id="hud-visc">0.00</strong>
+        </div>
+        <div class="lens-hud br">Flow<strong id="hud-flow">0.0 kn</strong></div>
+      </div>
+    </div>
+
+    <div class="demo-disclaimer">
+      <p class="disclaimer-feature">
+        Fluid interaction - viscous, touch-aware surface
+      </p>
+      <p class="disclaimer-note">
+        Depth, temperature and flow readouts are simulated for illustration
+        purposes only. Always dive trained and supervised by a professional.
+      </p>
+    </div>
+
+    <!-- Libraries -->
+    <script
+      src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"
+      integrity="sha384-HOvlOYPIs/zjoIkWUGXkVmXsjr8GuZLV+Q+rcPwmJOVZVpvTSXQChiN4t9Euv9Vc"
+      crossorigin="anonymous"
+    ></script>
+
+    <!-- Scripts -->
+    <script src="/scripts/liquidGL.js"></script>
+    <script src="/scripts/liquidGL-helper.js"></script>
+    <script>
+      let glassEffect;
+
+      document.addEventListener("DOMContentLoaded", () => {
+        /* Global Navigation Setup */
+        const navToggle = document.querySelector(".nav-toggle");
+        const navContainer = document.querySelector(".nav-container");
+
+        if (navToggle && navContainer) {
+          navToggle.addEventListener("click", () => {
+            const isExpanded = navContainer.classList.contains("expanded");
+            navContainer.classList.toggle("expanded");
+            navToggle.setAttribute("aria-expanded", !isExpanded);
+          });
+
+          // Close navigation when clicking outside
+          document.addEventListener("click", (e) => {
+            if (!navContainer.contains(e.target)) {
+              navContainer.classList.remove("expanded");
+              navToggle.setAttribute("aria-expanded", "false");
+            }
+          });
+
+          // Close navigation when pressing Escape
+          document.addEventListener("keydown", (e) => {
+            if (
+              e.key === "Escape" &&
+              navContainer.classList.contains("expanded")
+            ) {
+              navContainer.classList.remove("expanded");
+              navToggle.setAttribute("aria-expanded", "false");
+            }
+          });
+        }
+
+        /* Sensor readouts: gentle random-walks so the console feels alive */
+        const hudDepth = document.getElementById("hud-depth");
+        const hudTemp = document.getElementById("hud-temp");
+        const hudVisc = document.getElementById("hud-visc");
+        const hudFlow = document.getElementById("hud-flow");
+
+        let depth = 18,
+          temp = 24,
+          visc = 0.55,
+          flow = 1.2;
+        const tick = () => {
+          depth += (Math.random() - 0.5) * 0.6;
+          temp += (Math.random() - 0.5) * 0.15;
+          visc = Math.min(
+            1,
+            Math.max(0.2, visc + (Math.random() - 0.5) * 0.05),
+          );
+          flow = Math.max(0, flow + (Math.random() - 0.5) * 0.3);
+          hudDepth.textContent = `${depth.toFixed(1)}m`;
+          hudTemp.textContent = `${temp.toFixed(1)}\u00b0C`;
+          hudVisc.textContent = visc.toFixed(2);
+          hudFlow.textContent = `${flow.toFixed(1)} kn`;
+        };
+        tick();
+        setInterval(tick, 1200);
+
+        /* Live cursor coordinates in the bottom HUD bar, normalised to the
+           viewport's own box so it reads like a targeting reticle readout */
+        const lensEl = document.getElementById("lens");
+        const coordsTag = document.getElementById("frame-coords");
+        lensEl.addEventListener("pointermove", (e) => {
+          const rect = lensEl.getBoundingClientRect();
+          const x = (e.clientX - rect.left) / rect.width;
+          const y = (e.clientY - rect.top) / rect.height;
+          coordsTag.textContent = `X ${x.toFixed(2)} \u00b7 Y ${y.toFixed(2)}`;
+        });
+        lensEl.addEventListener("pointerleave", () => {
+          coordsTag.textContent = "X 0.00 \u00b7 Y 0.00";
+        });
+
+        /* Entrance animation: the housing bars slide in flush from their
+           own edges (top down, bottom up, sides inward) like a hatch
+           closing, then notches and HUD content settle in */
+        gsap.set(".hud-bar.top", { yPercent: -100 });
+        gsap.set(".hud-bar.bottom", { yPercent: 100 });
+        gsap.set(".hud-bar.left", { xPercent: -100 });
+        gsap.set(".hud-bar.right", { xPercent: 100 });
+        gsap.set(".frame-notch", { opacity: 0 });
+        gsap.set(".frame-bar", { opacity: 0 });
+        gsap.set(".lens-hud", { opacity: 0, y: -6 });
+        gsap.set(".lens-center > *", { opacity: 0, y: 10 });
+
+        const tl = gsap.timeline({ delay: 0.15 });
+        tl.to(".hud-bar.top", {
+          yPercent: 0,
+          duration: 0.7,
+          ease: "power3.out",
+        })
+          .to(
+            ".hud-bar.bottom",
+            { yPercent: 0, duration: 0.7, ease: "power3.out" },
+            "<",
+          )
+          .to(
+            ".hud-bar.left",
+            { xPercent: 0, duration: 0.7, ease: "power3.out" },
+            "<0.1",
+          )
+          .to(
+            ".hud-bar.right",
+            { xPercent: 0, duration: 0.7, ease: "power3.out" },
+            "<",
+          )
+          .to(
+            ".frame-notch",
+            { opacity: 1, duration: 0.35, stagger: 0.06 },
+            "-=0.3",
+          )
+          .to(".frame-bar", { opacity: 1, duration: 0.4 }, "-=0.2")
+          .from(
+            "#lens",
+            { opacity: 0, scale: 0.96, duration: 0.6, ease: "power2.out" },
+            "-=0.3",
+          )
+          .to(
+            ".lens-hud",
+            {
+              opacity: 1,
+              y: 0,
+              duration: 0.4,
+              stagger: 0.08,
+              ease: "power2.out",
+            },
+            "-=0.3",
+          )
+          .to(
+            ".lens-center > *",
+            {
+              opacity: 1,
+              y: 0,
+              duration: 0.4,
+              stagger: 0.08,
+              ease: "power2.out",
+            },
+            "-=0.2",
+          );
+
+        function initializeliquidGL() {
+          glassEffect = liquidGL({
+            target: ".glass",
+            snapshot: "body",
+            resolution: 2,
+            refraction: 0.1,
+            aberration: 0,
+            bevelDepth: 0.037,
+            bevelWidth: 0.027,
+            frost: 1,
+            shadow: true,
+            specular: true,
+            reveal: "fade",
+            tilt: false,
+            tiltFactor: 5,
+            tiltEase: 400,
+            draggable: false,
+            interaction: "fluid",
+            interactionStrength: 2.98,
+            interactionRadius: 0.9,
+            interactionViscosity: 0.5,
+            magnify: 1.3,
+            helper: true,
+          });
+        }
+
+        initializeliquidGL();
+
+        window.addEventListener("load", () => {
+          liquidGL.syncWith();
+        });
+      });
+    </script>
+  </body>
+</html>

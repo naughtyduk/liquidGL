@@ -1,0 +1,983 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Multiple Lenses - liquidGL – Liquid Glass - NaughtyDuk©</title>
+    <link rel="icon" href="/assets/images/favicon.ico" />
+    <meta
+      name="description"
+      content="A bento-style card layout using multiple Liquid Glass lenses, each with fluid touch interaction and tilt response."
+    />
+    <meta
+      name="keywords"
+      content="liquidGL, webGL, liquid glass, menu bar, real-time, refraction, NaughtyDuk©"
+    />
+    <meta name="author" content="NaughtyDuk©" />
+    <meta name="robots" content="index, follow" />
+    <meta name="googlebot" content="index, follow" />
+    <meta
+      property="og:image"
+      content="/assets/images/_0006_multiple-lenses.jpg"
+    />
+    <meta
+      property="og:title"
+      content="Multiple Lenses - liquidGL – Liquid Glass - NaughtyDuk©"
+    />
+    <meta
+      property="og:description"
+      content="A bento-style card layout using multiple Liquid Glass lenses, each with fluid touch interaction and tilt response."
+    />
+    <meta
+      property="og:url"
+      content="https://liquidgl.naughtyduk.com/demos/multiple-lenses.html"
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="en_GB" />
+    <meta property="og:site_name" content="liquidGL" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta
+      name="twitter:title"
+      content="Multiple Lenses - liquidGL – Liquid Glass - NaughtyDuk©"
+    />
+    <meta
+      name="twitter:description"
+      content="A bento-style card layout using multiple Liquid Glass lenses, each with fluid touch interaction and tilt response."
+    />
+    <meta
+      name="twitter:image"
+      content="/assets/images/_0006_multiple-lenses.jpg"
+    />
+    <meta
+      name="twitter:url"
+      content="https://liquidgl.naughtyduk.com/demos/multiple-lenses.html"
+    />
+    <style>
+      :root {
+        --text-color: #333333;
+        --bg-color: #ececec;
+        --secondary-text: rgba(0, 0, 0, 0.5);
+        scroll-behavior: auto;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
+          Arial, sans-serif;
+        background-color: var(--bg-color);
+        color: var(--text-color);
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        line-height: 1.5;
+        height: 100svh;
+        overflow: hidden;
+      }
+
+      @media (max-width: 768px) {
+        .lil-gui {
+          display: none !important;
+        }
+      }
+
+      .bg-image {
+        position: fixed;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        z-index: 0;
+        -webkit-user-drag: none;
+        -webkit-user-select: none;
+        user-select: none;
+      }
+
+      /* Global Navigation Styles */
+      .global-nav {
+        position: fixed;
+        top: 1rem;
+        left: 1rem;
+        z-index: 10000;
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
+          Arial, sans-serif;
+      }
+
+      .nav-container {
+        background: #120d0e;
+        backdrop-filter: blur(16px);
+        border-radius: 12px;
+        border: 0.5px solid #1e1e20;
+        overflow: hidden;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 4px 16px rgb(0 0 0 / 20%);
+      }
+
+      .nav-toggle {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 16px;
+        background: transparent;
+        border: none;
+        color: #f0f0f0;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 500;
+        width: 100%;
+        text-align: left;
+        transition: all 0.2s ease;
+      }
+
+      .nav-toggle:hover {
+        background: rgb(21 21 25);
+      }
+
+      .nav-toggle svg {
+        width: 16px;
+        height: 16px;
+        fill: currentColor;
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      .nav-container.expanded .nav-toggle svg {
+        transform: rotate(180deg);
+      }
+
+      .nav-menu {
+        max-height: 0;
+        overflow: scroll;
+        transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      .nav-container.expanded .nav-menu {
+        max-height: 420px;
+        overflow-y: auto;
+      }
+
+      .nav-item {
+        display: block;
+        padding: 10px 16px;
+        color: #88888f;
+        text-decoration: none;
+        font-size: 13px;
+        font-weight: 400;
+        transition: all 0.2s ease;
+        border-top: 0.5px solid #1e1e20;
+        position: relative;
+        cursor: pointer;
+      }
+
+      .nav-item:hover {
+        background: rgb(21 21 25);
+        color: #f0f0f0;
+      }
+
+      .nav-item.active {
+        color: #f0f0f0;
+        background: rgb(21 21 25);
+      }
+
+      .nav-item.active::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background: #fafafa;
+      }
+
+      @media (max-width: 768px) {
+        .global-nav {
+          top: 0.5rem;
+          left: 0.5rem;
+        }
+
+        .nav-toggle {
+          padding: 10px 14px;
+          font-size: 13px;
+        }
+
+        .nav-item {
+          padding: 8px 14px;
+          font-size: 12px;
+        }
+      }
+
+      /* --- Bento grid; centre cell holds the liquidGL target --- */
+      .stage {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        pointer-events: none;
+        z-index: 100;
+        padding: 1rem;
+      }
+
+      .bento {
+        display: grid;
+        grid-template-columns: 240px 340px 240px;
+        grid-template-areas: "left center right";
+        gap: 1rem;
+        align-items: stretch;
+        height: min(560px, 80svh);
+        width: max-content;
+        max-width: 100%;
+      }
+
+      .bento-col {
+        display: grid;
+        gap: 1rem;
+        grid-template-rows: 1fr 1fr;
+        grid-area: left;
+      }
+
+      .bento-col.right {
+        grid-area: right;
+        grid-template-rows: 1fr 1fr 1fr;
+      }
+
+      .bento-card {
+        position: relative;
+        border-radius: 22px;
+        padding: 18px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        color: #f0f0f0;
+      }
+
+      /* Keep card content above the fixed WebGL canvas (all lenses) */
+      .glass > * {
+        position: relative;
+        z-index: 2;
+      }
+
+      .bento-label {
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: -0.04em;
+        text-transform: uppercase;
+        color: rgb(190, 190, 190);
+      }
+
+      .bento-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .icon-img {
+        width: 18px;
+        height: 18px;
+        display: block;
+        opacity: 1;
+      }
+
+      .card-head .icon-img {
+        display: inline;
+        margin-right: 6px;
+        vertical-align: -2px;
+      }
+
+      .bento-foot {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+
+      .bento-value {
+        font-size: 34px;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        line-height: 1.05;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .bento-value small {
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: rgba(255, 255, 255, 0.45);
+        margin-left: 4px;
+      }
+
+      .bento-col.right .bento-value {
+        font-size: 24px;
+      }
+
+      .bento-sub {
+        font-size: 11px;
+        color: rgba(255, 255, 255, 0.45);
+      }
+
+      .bento-delta {
+        font-size: 11px;
+        font-weight: 600;
+        color: #30d1a7;
+      }
+
+      .bento-card.highlight .bento-value {
+        color: #30d1a7;
+      }
+
+      @media (max-width: 1020px) {
+        html {
+          overflow-x: clip;
+          overflow-y: auto;
+        }
+
+        body {
+          position: relative;
+          overflow: clip;
+          height: auto;
+        }
+
+        .bg-image {
+          position: absolute;
+        }
+
+        .stage {
+          position: static;
+          display: block;
+          padding: 5.5rem 1rem 2rem;
+          min-height: 100svh;
+        }
+
+        .bento {
+          grid-template-columns: 1fr;
+          grid-template-areas:
+            "center"
+            "left"
+            "right";
+          height: auto;
+          width: 100%;
+          max-width: 420px;
+          margin: 0 auto;
+        }
+
+        .bento-col {
+          grid-template-rows: none;
+          grid-template-columns: 1fr 1fr;
+          grid-auto-rows: minmax(120px, auto);
+        }
+
+        .bento-col.right {
+          grid-template-rows: none;
+          grid-template-columns: 1fr 1fr;
+          grid-auto-rows: minmax(100px, auto);
+        }
+
+        .bento-col.right .bento-card:last-child {
+          grid-column: 1 / -1;
+        }
+
+        .health-card {
+          height: 520px;
+        }
+      }
+
+      /* --- Health card (centre lens) --- */
+      .health-card {
+        grid-area: center;
+        position: relative;
+        width: 340px;
+        max-width: 100%;
+        border-radius: 28px;
+        pointer-events: auto !important; /* library sets none when draggable: false */
+        cursor: grab;
+        user-select: none;
+        touch-action: pan-y pinch-zoom;
+        color: #f0f0f0;
+      }
+
+      @media (max-width: 1020px) {
+        .health-card {
+          width: 100%;
+        }
+      }
+
+      .health-card:active {
+        cursor: grabbing;
+      }
+
+      /* Keep card content above the fixed WebGL canvas */
+      .health-card > * {
+        position: absolute;
+        z-index: 2;
+      }
+
+      .card-head {
+        top: 22px;
+        left: 24px;
+        right: 24px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: rgba(255, 255, 255, 0.85);
+      }
+
+      .card-head span {
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: -0.04em;
+        text-transform: uppercase;
+        color: rgb(190, 190, 190);
+      }
+
+      .card-head .live {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        color: rgba(255, 255, 255, 0.45);
+      }
+
+      .live-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: #30d1a7;
+      }
+
+      .card-metric {
+        top: 0;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        text-align: center;
+        padding-bottom: 80px;
+      }
+
+      .metric-row {
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+      }
+
+      .metric-value {
+        font-size: 96px;
+        font-weight: 700;
+        letter-spacing: -0.04em;
+        line-height: 1;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .metric-unit {
+        font-size: 13px;
+        font-weight: 600;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: rgba(255, 255, 255, 0.45);
+      }
+
+      .metric-delta {
+        font-size: 12px;
+        font-weight: 600;
+        color: #30d1a7;
+      }
+
+      .card-stats {
+        left: 24px;
+        right: 24px;
+        bottom: 116px;
+        display: flex;
+      }
+
+      .stat {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 3px;
+      }
+
+      .stat + .stat {
+        border-left: 0.5px solid rgba(255, 255, 255, 0.25);
+      }
+
+      .stat-label {
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: -0.04em;
+        text-transform: uppercase;
+        color: rgb(190, 190, 190);
+      }
+
+      .stat-value {
+        font-size: 16px;
+        font-weight: 600;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .stat-value small {
+        font-size: 10px;
+        font-weight: 500;
+        color: rgba(255, 255, 255, 0.45);
+        margin-left: 2px;
+      }
+
+      /* --- Infinite line ticker --- */
+      .ticker {
+        left: 0;
+        right: 0;
+        bottom: 36px;
+        height: 48px;
+      }
+
+      .ticker-lines {
+        position: absolute;
+        inset: 0;
+        overflow: hidden;
+        -webkit-mask-image: linear-gradient(
+          90deg,
+          transparent,
+          #000 18%,
+          #000 82%,
+          transparent
+        );
+        mask-image: linear-gradient(
+          90deg,
+          transparent,
+          #000 18%,
+          #000 82%,
+          transparent
+        );
+      }
+
+      .tick {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 2px;
+        border-radius: 1px;
+        background: rgba(255, 255, 255, 0.38);
+        will-change: transform;
+      }
+
+      .tick.major {
+        background: rgba(255, 255, 255, 0.65);
+      }
+
+      .ticker-center {
+        position: absolute;
+        left: 50%;
+        bottom: 0;
+        width: 3px;
+        height: 44px;
+        transform: translateX(-50%);
+        border-radius: 2px;
+        background: #30d1a7;
+      }
+
+      /* --- Demo disclaimer --- */
+      .demo-disclaimer {
+        position: fixed;
+        bottom: 2rem;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 100%;
+        max-width: 420px;
+        padding: 0 1rem;
+        text-align: center;
+        text-transform: uppercase;
+        z-index: 10001;
+        pointer-events: none;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        color: rgba(255, 255, 255, 0.92);
+      }
+
+      .demo-disclaimer .disclaimer-feature {
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: 0.02em;
+        margin-bottom: 6px;
+      }
+
+      .demo-disclaimer .disclaimer-note {
+        font-size: 9px;
+        font-weight: 400;
+        letter-spacing: -0.02em;
+        line-height: 1.25;
+        max-width: 280px;
+        color: rgba(255, 255, 255, 0.6);
+      }
+
+      @media (max-width: 640px) {
+        .demo-disclaimer .disclaimer-note {
+          display: none;
+        }
+        .demo-disclaimer {
+          bottom: 1rem !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <img
+      class="bg-image"
+      src="/assets/images/health-bkg.webp"
+      alt=""
+      aria-hidden="true"
+    />
+
+    <!-- Global Navigation -->
+    <nav class="global-nav">
+      <div class="nav-container">
+        <button
+          class="nav-toggle"
+          aria-expanded="false"
+          aria-label="Toggle navigation menu"
+        >
+          <span>Demos</span>
+          <svg viewBox="0 0 16 16">
+            <path d="M8 11L3 6h10l-5 5z" />
+          </svg>
+        </button>
+        <div data-lenis-prevent class="nav-menu">
+          <a href="../index.html" class="nav-item">Index</a>
+          <a href="audio-player.html" class="nav-item">Audio Player</a>
+          <a href="menu-bar.html" class="nav-item">Menu Bar</a>
+          <a href="ai-search.html" class="nav-item">AI Search</a>
+          <a href="multiple-lenses.html" class="nav-item active"
+            >Multiple Lenses</a
+          >
+          <a href="chromatic-aberration.html" class="nav-item"
+            >Chromatic Aberration</a
+          >
+          <a href="fluid-interaction.html" class="nav-item"
+            >Fluid Interaction</a
+          >
+          <a href="frost-specular.html" class="nav-item"
+            >Frost &amp; Specular</a
+          >
+          <a href="tinted-glass.html" class="nav-item">Tinted Glass</a>
+          <a href="stacked-lenses.html" class="nav-item">Stacked Lenses</a>
+          <a href="true-refraction.html" class="nav-item">True Refraction</a>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Health card: content inside the liquidGL target; the library warps
+         the background behind it, not this content -->
+    <div class="stage">
+      <div class="bento">
+        <div class="bento-col">
+          <div class="bento-card glass">
+            <div class="bento-top">
+              <span class="bento-label">Distance</span>
+              <img
+                class="icon-img"
+                src="/assets/images/icon-route-green.svg"
+                alt=""
+                aria-hidden="true"
+              />
+            </div>
+            <div class="bento-foot">
+              <span class="bento-value">3.4<small>km</small></span>
+              <span class="bento-delta">▲ 3.2% vs avg</span>
+            </div>
+          </div>
+          <div class="bento-card glass">
+            <div class="bento-top">
+              <span class="bento-label">Avg Resistance</span>
+              <img
+                class="icon-img"
+                src="/assets/images/icon-mountain-green.svg"
+                alt=""
+                aria-hidden="true"
+              />
+            </div>
+            <div class="bento-foot">
+              <span class="bento-value">27.6<small>%</small></span>
+              <span class="bento-sub">▲ 3.2% vs avg</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="health-card glass" id="lens" aria-label="Heart rate card">
+          <div class="card-head">
+            <span>Heart Rate</span>
+            <span class="live"><span class="live-dot"></span>Live</span>
+          </div>
+
+          <div class="card-metric">
+            <div class="metric-row">
+              <span class="metric-value" id="hr-value">72</span>
+              <span class="metric-unit">bpm</span>
+            </div>
+            <span class="metric-delta">▲ 4.2% vs avg</span>
+          </div>
+
+          <div class="card-stats">
+            <div class="stat">
+              <span class="stat-label">HRV</span>
+              <span class="stat-value">48<small>ms</small></span>
+            </div>
+            <div class="stat">
+              <span class="stat-label">SpO2</span>
+              <span class="stat-value">98<small>%</small></span>
+            </div>
+            <div class="stat">
+              <span class="stat-label">Resting</span>
+              <span class="stat-value">58<small>bpm</small></span>
+            </div>
+          </div>
+
+          <div class="ticker">
+            <div class="ticker-lines" id="ticker-lines"></div>
+            <div class="ticker-center"></div>
+          </div>
+        </div>
+
+        <div class="bento-col right">
+          <div class="bento-card glass">
+            <div class="bento-top">
+              <span class="bento-label">Avg Speed</span>
+              <img
+                class="icon-img"
+                src="/assets/images/icon-gauge-green.svg"
+                alt=""
+                aria-hidden="true"
+              />
+            </div>
+            <div class="bento-foot">
+              <span class="bento-value">3.6<small>km/h</small></span>
+              <span class="bento-sub">Max 12.3 km/h</span>
+            </div>
+          </div>
+          <div class="bento-card glass">
+            <div class="bento-top">
+              <span class="bento-label">Power</span>
+              <img
+                class="icon-img"
+                src="/assets/images/icon-zap-green.svg"
+                alt=""
+                aria-hidden="true"
+              />
+            </div>
+            <div class="bento-foot">
+              <span class="bento-value">112<small>W</small></span>
+              <span class="bento-sub">Normalised 137 W</span>
+            </div>
+          </div>
+          <div class="bento-card glass highlight">
+            <div class="bento-top">
+              <span class="bento-label">Vs Last Interval</span>
+              <img
+                class="icon-img"
+                src="/assets/images/icon-trending-up-green.svg"
+                alt=""
+                aria-hidden="true"
+              />
+            </div>
+            <div class="bento-foot">
+              <span class="bento-value">+4.8%</span>
+              <span class="bento-sub">▲ 2 PB</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="demo-disclaimer">
+      <p class="disclaimer-feature">
+        Bento box, multi-lens layout with fluid glass + tilt
+      </p>
+      <p class="disclaimer-note">
+        Health stats are used for illustration purposes only. Consult your
+        doctor to learn about your own stats and to keep your body healthy.
+      </p>
+    </div>
+
+    <!-- Scripts -->
+    <script src="/scripts/liquidGL.js"></script>
+    <script src="/scripts/liquidGL-helper.js"></script>
+    <script>
+      let glassEffect;
+
+      document.addEventListener("DOMContentLoaded", () => {
+        /* Global Navigation Setup */
+        const navToggle = document.querySelector(".nav-toggle");
+        const navContainer = document.querySelector(".nav-container");
+
+        if (navToggle && navContainer) {
+          navToggle.addEventListener("click", () => {
+            const isExpanded = navContainer.classList.contains("expanded");
+            navContainer.classList.toggle("expanded");
+            navToggle.setAttribute("aria-expanded", !isExpanded);
+          });
+
+          // Close navigation when clicking outside
+          document.addEventListener("click", (e) => {
+            if (!navContainer.contains(e.target)) {
+              navContainer.classList.remove("expanded");
+              navToggle.setAttribute("aria-expanded", "false");
+            }
+          });
+
+          // Close navigation when pressing Escape
+          document.addEventListener("keydown", (e) => {
+            if (
+              e.key === "Escape" &&
+              navContainer.classList.contains("expanded")
+            ) {
+              navContainer.classList.remove("expanded");
+              navToggle.setAttribute("aria-expanded", "false");
+            }
+          });
+        }
+
+        /* --- Infinite line ticker --- */
+        const lens = document.getElementById("lens");
+        const tickerWrap = document.getElementById("ticker-lines");
+        const hrValue = document.getElementById("hr-value");
+        const TICK_SPACING = 14;
+        let tickOffset = 0;
+        let dragVelocity = 0;
+        let draggingTicker = false;
+        let lastDragX = 0;
+        let ticks = [];
+        let tickSpan = 0;
+
+        const buildTicks = () => {
+          tickerWrap.innerHTML = "";
+          const w = tickerWrap.clientWidth;
+          const count = Math.ceil(w / TICK_SPACING) + 8;
+          tickSpan = count * TICK_SPACING;
+          ticks = [];
+          for (let i = 0; i < count; i++) {
+            const t = document.createElement("div");
+            const major = i % 5 === 0;
+            t.className = major ? "tick major" : "tick";
+            t.style.height = major ? "28px" : "16px";
+            tickerWrap.appendChild(t);
+            ticks.push(t);
+          }
+        };
+
+        /* bpm random-walks on its own between 120–150 */
+        let bpm = 135;
+        setInterval(() => {
+          bpm += Math.round((Math.random() - 0.5) * 6);
+          bpm = Math.min(150, Math.max(120, bpm));
+          hrValue.textContent = bpm;
+        }, 900);
+        hrValue.textContent = bpm;
+
+        const renderTicks = () => {
+          ticks.forEach((t, i) => {
+            const x =
+              ((((i * TICK_SPACING + tickOffset) % tickSpan) + tickSpan) %
+                tickSpan) -
+              TICK_SPACING * 2;
+            t.style.transform = `translateX(${x}px)`;
+          });
+        };
+
+        buildTicks();
+        window.addEventListener("resize", buildTicks);
+
+        (function tickerLoop() {
+          if (!draggingTicker && Math.abs(dragVelocity) > 0.05) {
+            tickOffset += dragVelocity;
+            dragVelocity *= 0.94;
+          }
+          renderTicks();
+          requestAnimationFrame(tickerLoop);
+        })();
+
+        /* Drag anywhere on the card to scrub the ticker (independent of the
+           lens — the library's own dragging stays off) */
+        let tickerPointer = null;
+        let startDragX = 0;
+        let startDragY = 0;
+        lens.addEventListener("pointerdown", (e) => {
+          if (!e.isPrimary || e.button !== 0 || tickerPointer !== null) return;
+          tickerPointer = e.pointerId;
+          startDragX = lastDragX = e.clientX;
+          startDragY = e.clientY;
+          draggingTicker = e.pointerType === "mouse";
+          dragVelocity = 0;
+        });
+        window.addEventListener("pointermove", (e) => {
+          if (e.pointerId !== tickerPointer) return;
+          if (!draggingTicker) {
+            const dx = Math.abs(e.clientX - startDragX);
+            const dy = Math.abs(e.clientY - startDragY);
+            if (Math.max(dx, dy) < 8) return;
+            if (dy >= dx) {
+              tickerPointer = null;
+              return;
+            }
+            draggingTicker = true;
+          }
+          const dx = e.clientX - lastDragX;
+          lastDragX = e.clientX;
+          tickOffset += dx;
+          dragVelocity = dx;
+        });
+        ["pointerup", "pointercancel"].forEach((ev) =>
+          window.addEventListener(ev, (e) => {
+            if (e.pointerId !== tickerPointer) return;
+            if (ev === "pointercancel") dragVelocity = 0;
+            tickerPointer = null;
+            draggingTicker = false;
+          }),
+        );
+
+        function initializeliquidGL() {
+          glassEffect = liquidGL({
+            target: ".glass",
+            snapshot: "body",
+            resolution: 2,
+            refraction: 0.007,
+            aberration: 0,
+            bevelDepth: 0.084,
+            bevelWidth: 0.108,
+            frost: 4.2,
+            shadow: false,
+            specular: true,
+            reveal: "none",
+            tilt: true,
+            tiltFactor: 5,
+            tiltEase: 1000,
+            draggable: false,
+            interaction: "fluid",
+            interactionStrength: 0.5,
+            interactionRadius: 0.64,
+            interactionViscosity: 0.5,
+            magnify: 1.3,
+            tint: "rgba(0, 0, 0, 0.32)",
+            helper: true,
+          });
+        }
+
+        initializeliquidGL();
+
+        window.addEventListener("load", () => {
+          liquidGL.syncWith();
+        });
+      });
+    </script>
+  </body>
+</html>

@@ -1,69 +1,39 @@
 # liquidGL – Liquid Glass - Powered by WebGPU/WebGL
 
-<a href="https://liquidgl.naughtyduk.com"><img src="https://raw.githubusercontent.com/naughtyduk/liquidGL/main/assets/liquidGL-npm-preview.gif" alt="liquidGL" width="100%" height="auto"/></a>
+<a href="https://liquidgl.naughtyduk.com"><img src="https://raw.githubusercontent.com/naughtyduk/liquidGL/main/assets/images/liquidGL-npm-readme.gif" alt="liquidGL" width="100%" height="auto"/></a>
 
-### v2.2.4
+### v3.0.0
 
 > **NOTE**
 > `liquidGL` is free to use for both non-commercial and commercial purposes.
 
-> **WARNING**
-> **v2.0.1 changed snapshot capture.** `liquidGL` now snapshots the page with its own built-in rasteriser, so `html2canvas` is no longer a dependency. Nothing needs to change in your code.
->
-> | Rasteriser    | Median  | Min     | Max      | Worst single stall |
-> | :------------ | :------ | :------ | :------- | :----------------- |
-> | NaughtyDOM    | 55.5 ms | 54.1 ms | 57.5 ms  | 37.8 ms            |
-> | `html2canvas` | 86.3 ms | 85.3 ms | 134.8 ms | 16.2 ms            |
->
-> Measured over 7 alternating runs of the full home page at `resolution: 2` (2880×10036 output), Chrome 150.
-
 `liquidGL` turns any fixed or sticky-positioned element into a perfectly refracted, glossy "glass pane" rendered in WebGPU (with automatic fallback to WebGL).
 
-<a href="https://liquidgl.naughtyduk.com" target="_blank" rel="noopener noreferrer"><img src="https://raw.githubusercontent.com/naughtyduk/liquidGL/main/assets/try-it-out-npm.png" alt="Try It Out" width="120"></a>
+<a href="https://liquidgl.naughtyduk.com" target="_blank" rel="noopener noreferrer"><img src="https://raw.githubusercontent.com/naughtyduk/liquidGL/main/assets/images/try-it-out-npm.png" alt="Try It Out" width="120"></a>
 
-<a href="https://liquidgl.naughtyduk.com/demos/demo-1.html" target="_blank" rel="noopener noreferrer"><strong>DEMO 1</strong></a> | <a href="https://liquidgl.naughtyduk.com/demos/demo-2.html" target="_blank" rel="noopener noreferrer"><strong>DEMO 2</strong></a> | <a href="https://liquidgl.naughtyduk.com/demos/demo-3.html" target="_blank" rel="noopener noreferrer"><strong>DEMO 3</strong></a> | <a href="https://liquidgl.naughtyduk.com/demos/demo-4.html" target="_blank" rel="noopener noreferrer"><strong>DEMO 4</strong></a> | <a href="https://liquidgl.naughtyduk.com/demos/demo-5.html" target="_blank" rel="noopener noreferrer"><strong>DEMO 5</strong></a>
+<a href="https://liquidgl.naughtyduk.com/demos/audio-player.html" target="_blank" rel="noopener noreferrer"><strong>Audio Player</strong></a> | <a href="https://liquidgl.naughtyduk.com/demos/menu-bar.html" target="_blank" rel="noopener noreferrer"><strong>Menu Bar</strong></a> | <a href="https://liquidgl.naughtyduk.com/demos/ai-search.html" target="_blank" rel="noopener noreferrer"><strong>AI Search</strong></a> | <a href="https://liquidgl.naughtyduk.com/demos/multiple-lenses.html" target="_blank" rel="noopener noreferrer"><strong>Multiple Lenses</strong></a> | <a href="https://liquidgl.naughtyduk.com/demos/chromatic-aberration.html" target="_blank" rel="noopener noreferrer"><strong>Chromatic Aberration</strong></a> | <a href="https://liquidgl.naughtyduk.com/demos/fluid-interaction.html" target="_blank" rel="noopener noreferrer"><strong>Fluid Interaction</strong></a> | <a href="https://liquidgl.naughtyduk.com/demos/frost-specular.html" target="_blank" rel="noopener noreferrer"><strong>Frost & Specular</strong></a> | <a href="https://liquidgl.naughtyduk.com/demos/tinted-glass.html" target="_blank" rel="noopener noreferrer"><strong>Tinted Glass</strong></a> | <a href="https://liquidgl.naughtyduk.com/demos/stacked-lenses.html" target="_blank" rel="noopener noreferrer"><strong>Stacked Lenses</strong></a> | <a href="https://liquidgl.naughtyduk.com/demos/true-refraction.html" target="_blank" rel="noopener noreferrer"><strong>True Refraction</strong></a>
 
 ---
 
 ## What's New
 
-**Features**
+- **Tinted Glass** — the new `tint` option dyes the pane with any CSS colour, using the colour's alpha as the dye strength: `tint: "rgba(8, 10, 20, 0.25)"` gives a dark-glass look, `tint: "rgba(70, 50, 180, 0.35)"` a coloured one. Specular highlights stay clean white on top of the dye. Adjustable per lens at runtime with `lens.setTint("…")`, and honoured by every backend — WebGPU, WebGL and the CSS fallback.
 
-- **2.2.4 - HD Glass on Mobile** — Snapshot capture is no longer hard capped by the device's screen resolution, and is instead capped by the GPU texture limit set by the browser, allowing for higher quality glass on mobile devices.
+- **Fluid Interaction** — set `interaction: "fluid"` for a viscous, touch-aware surface that displaces and follows the cursor or finger in real time. Tune the effect with `interactionStrength`, `interactionRadius` and `interactionViscosity`.
 
-- **2.2.0 - WebGPU rendering** — `liquidGL` now renders with WebGPU where available, with an automatic fallback chain of WebGPU → WebGL2 → WebGL1 → CSS `backdrop-filter`. Nothing to configure, the chain is fully automatic. Choose where the chain starts with the new `engine` option (`'auto'`, `'webgpu'`, `'webgl2'`, `'webgl'`), or test quickly via the URL parameter `?liquidGL-engine=webgl2`.
+- **Chromatic Aberration** — the new `aberration` option disperses the red and blue channels either side of the refraction vector, blue displaced further than red, matching the way real glass disperses shorter wavelengths more strongly. Dispersion scales with the refraction offset, so it concentrates at the bevelled edge and vanishes at the flat centre. Defaults to `0` (off).
 
-- **2.2.0 - Helper GUI is now a separate file** — the dev GUI no longer ships in the main bundle. Import `liquid-gl/liquidGL-helper.js` in development to keep using `helper: true`. If the module is missing you'll get a console error and everything else works as normal.
+- **Stacked Lenses** — lenses can now render on top of one another's refracted output, so a lens's glass can itself be refracted by another lens above it. Control stacking order with `zIndex`.
 
-- **2.1.0 - Helper GUI** — A helper GUI is now available to adjust the liquidGL options in real-time during development, helping you to achieve the perfect aesthetic. To enable it, set `helper: true` in the options object when calling `liquidGL()`.
+- **Multiple Lenses** — any number of lenses can share a page, each with its own options, all drawn through a single shared canvas for performance.
 
-- **Sticky positioning support** — `position: sticky` elements can now be glassified. Sticky lenses are measured every animation frame, so the glass pane tracks the element through its flowing and stuck phases, then releases with it at the end of its containing block — inside nested scroll containers as well as the main document.
+- **WebGPU** — `liquidGL` now renders with WebGPU where available, with an automatic fallback chain of WebGPU → WebGL2 → WebGL1 → CSS `backdrop-filter`. Nothing to configure, the chain is fully automatic. Choose where the chain starts with the new `engine` option (`'auto'`, `'webgpu'`, `'webgl2'`, `'webgl'`), or test quickly via the URL parameter `?liquidGL-engine=webgl2`.
 
-- **Built-in DOM snapshotter** — the `html2canvas` dependency has been replaced with an integrated rasteriser. Capture no longer depends on a third-party library.
+- **Draggable Lenses** — set `draggable: true` to let users pick up and move a lens with mouse or touch. Fires `on.dragstart`, `on.drag` and `on.dragend` callbacks, and can be toggled at runtime with `lens.setDraggable()`.
 
-- **Chromatic aberration** — the new `aberration` option disperses the red and blue channels either side of the refraction vector, blue displaced further than red, matching the way real glass disperses shorter wavelengths more strongly. Dispersion scales with the refraction offset, so it concentrates at the bevelled edge and vanishes at the flat centre. Defaults to `0` (off).
+- **zIndex Support** — the new `zIndex` option gives explicit control over a lens's stacking position, used to order stacked/multiple lenses and their shadow/tilt layers. Defaults to the element's own effective z-index.
 
-- **Configurable tilt easing** — the new `tiltEase` option sets the settle duration, in milliseconds, of the tilt on both hover-in and hover-out.
-
----
-
-**Bug fixes**
-
-- **Refraction drift caused by ignored elements** — elements marked `data-liquid-ignore` were removed from the snapshot entirely, collapsing them out of layout and shifting every element below them. Ignored elements now retain their layout box, so the refraction stays aligned with the live page.
-
-- **Lens and content diverging during tilt** — the pane could separate from its content mid-tilt because the element was being measured while transformed. Metrics are now taken from the untilted box.
-
-- **Tilt snapping on hover** — the refraction jumped straight to its new angle on hover-in while easing on hover-out. Both directions now share a single curve and duration, and cursor movement during entry retargets the in-flight ease rather than snapping.
-
-- **Displacement while pinch-zoomed** — the pane drifted diagonally away from its element when the page was pinch-zoomed, because `visualViewport` offsets were applied twice. Offset compensation is now correctly gated.
-
----
-
-**Performance**
-
-- Video frames are no longer re-composited or re-uploaded when neither the frame time nor the destination region has changed. Paused, ended and unmoved videos now cost nothing per frame.
-
-- The snapshot bounding box is read once per frame and shared across every lens, instead of twice per lens per frame, removing repeated forced layout from the render loop.
+- **Per-lens Destroy Method** — each lens instance now exposes `lens.destroy()`, tearing down just that lens (styles, listeners and GPU resources) without affecting other lenses sharing the same canvas.
 
 ---
 
@@ -102,19 +72,22 @@ if (import.meta.env.DEV) await import("liquid-gl/liquidGL-helper.js");
 
 ### Key Features
 
-| Feature                                | Supported | Feature                          | Supported |
-| :------------------------------------- | :-------: | :------------------------------- | :-------: |
-| WebGPU Rendering `[NEW]`               |    ✅     | Helper GUI `[NEW]`               |    ✅     |
-| Real-time Refraction (static content)  |    ✅     | Magnification Control            |    ✅     |
-| Real-time Refraction (video)           |    ✅     | Dynamic Element Support          |    ✅     |
-| Real-time Refraction (text animations) |    ✅     | GSAP-Ready Animations            |    ✅     |
-| Real-time Refraction (CSS animations)  |    ❌     | Lightweight & Performant         |    ✅     |
-| Adjustable Bevel                       |    ✅     | Seamless Scroll Sync             |    ✅     |
-| Frosted Glass Effect                   |    ✅     | Auto-Resize Handling             |    ✅     |
-| Dynamic Shadows                        |    ✅     | Auto Video Refraction            |    ✅     |
-| Specular Highlights                    |    ✅     | Animate Lenses                   |    ✅     |
-| Interactive Tilt Effect `[UPDATED]`    |    ✅     | `on.init` Callback               |    ✅     |
-| Chromatic Aberration `[NEW]`           |    ✅     | Configurable Tilt Easing `[NEW]` |    ✅     |
+| Feature                                | Supported | Feature                   | Supported |
+| :------------------------------------- | :-------: | :------------------------ | :-------: |
+| WebGPU Rendering                       |    ✅     | Multiple & Stacked Lenses |    ✅     |
+| Real-time Refraction (static content)  |    ✅     | Magnification Control     |    ✅     |
+| Real-time Refraction (video)           |    ✅     | Dynamic Element Support   |    ✅     |
+| Real-time Refraction (text animations) |    ✅     | GSAP-Ready Animations     |    ✅     |
+| Real-time Refraction (CSS animations)  |    ❌     | Lightweight & Performant  |    ✅     |
+| Adjustable Bevel                       |    ✅     | Seamless Scroll Sync      |    ✅     |
+| Frosted Glass Effect                   |    ✅     | Auto-Resize Handling      |    ✅     |
+| Dynamic Shadows                        |    ✅     | Auto Video Refraction     |    ✅     |
+| Specular Highlights                    |    ✅     | Draggable Lenses          |    ✅     |
+| Interactive Tilt Effect                |    ✅     | zIndex Control            |    ✅     |
+| Chromatic Aberration                   |    ✅     | Configurable Tilt Easing  |    ✅     |
+| Tinted / Coloured Glass                |    ✅     | Per-lens Destroy Method   |    ✅     |
+| Fluid, Touch-Aware Interaction         |    ✅     | `on.init` Callback        |    ✅     |
+| Helper GUI                             |    ✅     | Register Dynamic Elements |    ✅     |
 
 ---
 
@@ -145,6 +118,8 @@ const glassEffect = liquidGL({
   snapshot: "body", // The area used for refraction, <body> recommended and default
   target: ".liquidGL", // CSS selector for the element(s) to glass-ify
   resolution: 2.0, // The quality of the snapshot
+  zIndex: undefined, // Explicit stacking order; defaults to the element's own effective z-index
+  content: undefined, // CSS selector for a sub-element to render as lens content; defaults to the target itself
   refraction: 0.01, // Base refraction strength (0–1)
   aberration: 0, // Chromatic aberration strength (0–1). 0 = off
   bevelDepth: 0.08, // Intensity of the edge bevel (0–1)
@@ -156,7 +131,13 @@ const glassEffect = liquidGL({
   tilt: false, // Whether tilt on hover is enabled
   tiltFactor: 5, // If tilt is enabled, how much tilt
   tiltEase: 400, // Tilt settle duration in ms, on hover in and out
+  draggable: false, // Whether the lens can be picked up and dragged
+  interaction: "none", // Pointer interaction mode: "none" or "fluid"
+  interactionStrength: 0.5, // Strength of the fluid displacement (0–1)
+  interactionRadius: 0.35, // Radius of the fluid interaction, proportion of the pane (0–1)
+  interactionViscosity: 0.65, // How quickly the fluid surface settles (0–1)
   magnify: 1, // Magnification of lens content
+  tint: null, // Optional glass dye - any CSS colour; alpha sets dye strength, e.g. "rgba(0, 0, 20, 0.25)"
   helper: false, // Show debug helper - note requires liquidGL-helper.js module
   on: {
     init(instance) {
@@ -167,6 +148,8 @@ const glassEffect = liquidGL({
       // you hide it from the user.
       console.log("liquidGL ready!", instance);
     },
+    // dragstart(instance, info), drag(instance, info) and dragend(instance, info)
+    // fire when `draggable: true` and the lens is picked up, moved and released.
   },
 });
 ```
@@ -234,32 +217,45 @@ Passing `gsap` lets `liquidGL` drive its render loop from the GSAP ticker and ke
 
 ## Parameters
 
-| Option       | Type     | Default       | Description                                                                                                                                                           |
-| ------------ | -------- | ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `engine`     | string   | `'auto'`      | Render backend chain: `'auto'` (WebGPU → WebGL2 → WebGL1 → CSS), `'webgpu'` (WebGPU → CSS), `'webgl2'` (WebGL2 → WebGL1 → CSS) or `'webgl'` (WebGL1 → CSS).           |
-| `snapshot`   | string   | `'body'`      | CSS selector for the element to snapshot.                                                                                                                             |
-| `target`     | string   | `'.liquidGL'` | **Required.** CSS selector for the element(s) to glassify.                                                                                                            |
-| `resolution` | number   | `2.0`         | Resolution of the background snapshot (clamped 0.1–3.0). Higher is sharper but uses more memory.                                                                      |
-| `refraction` | number   | `0.01`        | Base refraction offset applied across the pane (0–1).                                                                                                                 |
-| `aberration` | number   | `0`           | Chromatic aberration strength (0–1). Scales with the refraction offset, so dispersion is strongest at the bevel. `0` disables it and skips the extra texture samples. |
-| `bevelDepth` | number   | `0.08`        | Additional refraction on the edge to simulate depth (0–1).                                                                                                            |
-| `bevelWidth` | number   | `0.15`        | Width of the bevel zone as a fraction of the shortest side (0–1).                                                                                                     |
-| `frost`      | number   | `0`           | Blur radius in pixels for a frosted look. `0` is clear.                                                                                                               |
-| `shadow`     | boolean  | `true`        | Toggles a subtle drop-shadow under the pane.                                                                                                                          |
-| `specular`   | boolean  | `true`        | Enables animated specular highlights that move with time.                                                                                                             |
-| `reveal`     | string   | `'fade'`      | Reveal animation.<br>- `'none'`: Renders immediately.<br>- `'fade'`: Smoothly fades in.                                                                               |
-| `tilt`       | boolean  | `false`       | Enables 3D tilt interaction on cursor movement.                                                                                                                       |
-| `tiltFactor` | number   | `5`           | Depth of the tilt in degrees (0–25 recommended).                                                                                                                      |
-| `tiltEase`   | number   | `400`         | Duration in ms for the tilt to settle, applied symmetrically on hover-in and hover-out. `0` applies the tilt instantly.                                               |
-| `magnify`    | number   | `1`           | Magnification factor of the lens (clamped 0.001–3.0). `1` is no magnification.                                                                                        |
-| `helper`     | boolean  | `false`       | Loads the helper GUI for live tweaking of the liquidGL options. Requires `liquid-gl/liquidGL-helper.js` to be imported; logs a console error if missing.              |
-| `on.init`    | function | `—`           | Callback that runs once the first render completes. Receives the lens instance.                                                                                       |
+| Option                 | Type              | Default       | Description                                                                                                                                                                                                                                              |
+| ---------------------- | ----------------- | ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `engine`               | string            | `'auto'`      | Render backend chain: `'auto'` (WebGPU → WebGL2 → WebGL1 → CSS), `'webgpu'` (WebGPU → CSS), `'webgl2'` (WebGL2 → WebGL1 → CSS) or `'webgl'` (WebGL1 → CSS).                                                                                              |
+| `snapshot`             | string            | `'body'`      | CSS selector for the element to snapshot.                                                                                                                                                                                                                |
+| `target`               | string            | `'.liquidGL'` | **Required.** CSS selector for the element(s) to glassify.                                                                                                                                                                                               |
+| `resolution`           | number            | `2.0`         | Resolution of the background snapshot (clamped 0.1–3.0). Higher is sharper but uses more memory.                                                                                                                                                         |
+| `zIndex`               | integer           | `undefined`   | Explicit stacking order for the lens, used to order stacked/multiple lenses and their shadow/tilt layers. Defaults to the element's own effective z-index. Instances sharing a canvas must use the same `zIndex`.                                        |
+| `content`              | string \| boolean | `undefined`   | CSS selector for the element rendered as the lens's live content, when it differs from `target`. `false` disables the content layer entirely.                                                                                                            |
+| `refraction`           | number            | `0.01`        | Base refraction offset applied across the pane (0–1).                                                                                                                                                                                                    |
+| `aberration`           | number            | `0`           | Chromatic aberration strength (0–1). Scales with the refraction offset, so dispersion is strongest at the bevel. `0` disables it and skips the extra texture samples.                                                                                    |
+| `bevelDepth`           | number            | `0.08`        | Additional refraction on the edge to simulate depth (0–1).                                                                                                                                                                                               |
+| `bevelWidth`           | number            | `0.15`        | Width of the bevel zone as a fraction of the shortest side (0–1).                                                                                                                                                                                        |
+| `frost`                | number            | `0`           | Blur radius in pixels for a frosted look. `0` is clear.                                                                                                                                                                                                  |
+| `shadow`               | boolean           | `true`        | Toggles a subtle drop-shadow under the pane.                                                                                                                                                                                                             |
+| `specular`             | boolean           | `true`        | Enables animated specular highlights that move with time.                                                                                                                                                                                                |
+| `reveal`               | string            | `'fade'`      | Reveal animation.<br>- `'none'`: Renders immediately.<br>- `'fade'`: Smoothly fades in.                                                                                                                                                                  |
+| `tilt`                 | boolean           | `false`       | Enables 3D tilt interaction on cursor movement. Ignored while `draggable` is enabled.                                                                                                                                                                    |
+| `tiltFactor`           | number            | `5`           | Depth of the tilt in degrees (0–25 recommended).                                                                                                                                                                                                         |
+| `tiltEase`             | number            | `400`         | Duration in ms for the tilt to settle, applied symmetrically on hover-in and hover-out. `0` applies the tilt instantly.                                                                                                                                  |
+| `draggable`            | boolean           | `false`       | Lets the pane be picked up and moved with mouse or touch. Fires `on.dragstart`, `on.drag` and `on.dragend`. Runtime-adjustable via `lens.setDraggable()`.                                                                                                |
+| `interaction`          | string            | `'none'`      | Pointer interaction mode: `'none'` or `'fluid'`, a viscous surface that displaces toward the cursor/touch point.                                                                                                                                         |
+| `interactionStrength`  | number            | `0.5`         | Strength of the fluid displacement (0–1, higher values allow more extreme displacement).                                                                                                                                                                 |
+| `interactionRadius`    | number            | `0.35`        | Radius of the fluid interaction, as a proportion of the pane's shortest side (0–1).                                                                                                                                                                      |
+| `interactionViscosity` | number            | `0.65`        | How quickly the fluid surface follows and settles after the pointer moves (0–1). Higher is thicker/slower.                                                                                                                                               |
+| `magnify`              | number            | `1`           | Magnification factor of the lens (clamped 0.001–3.0). `1` is no magnification.                                                                                                                                                                           |
+| `tint`                 | string            | `null`        | Dyes the pane with any CSS colour; the colour's alpha is the dye strength (e.g. `'rgba(0, 0, 20, 0.25)'` for dark glass). The refracted content is multiplied by the colour, specular highlights render on top. Runtime-adjustable via `lens.setTint()`. |
+| `helper`               | boolean           | `false`       | Loads the helper GUI for live tweaking of the liquidGL options. Requires `liquid-gl/liquidGL-helper.js` to be imported; logs a console error if missing.                                                                                                 |
+| `on.init`              | function          | `—`           | Callback that runs once the first render completes. Receives the lens instance.                                                                                                                                                                          |
+| `on.dragstart`         | function          | `—`           | Fires when a `draggable` lens is picked up. Receives the lens instance and a `{ x, y }` info object.                                                                                                                                                     |
+| `on.drag`              | function          | `—`           | Fires on every pointer move while dragging. Receives the lens instance and a `{ x, y }` info object.                                                                                                                                                     |
+| `on.dragend`           | function          | `—`           | Fires when a dragged lens is released. Receives the lens instance and a `{ x, y }` info object.                                                                                                                                                          |
 
-> The `target` parameter is required; all others are optional.
+> The `target` parameter is required; all others are optional. Each lens instance also exposes `lens.setTint()`, `lens.setDraggable()` and `lens.destroy()` for runtime control.
 
 ---
 
 ## Presets
+
+Below are some ready-made configurations you can copy-paste. Feel free to tweak values to suit your design.
 
 | Name        | Settings                                                                                               | Purpose                                                 |
 | ----------- | ------------------------------------------------------------------------------------------------------ | ------------------------------------------------------- |
@@ -279,9 +275,18 @@ Passing `gsap` lets `liquidGL` drive its render loop from the GSAP ticker and ke
 | Does the effect work on mobile?                                          | Yes the library uses WebGPU where available, falls back through WebGL2 and WebGL1, and provides a frosted CSS `backdrop-filter` as a backup for older devices.                                                                                                                                                                                                                                                 |
 | I have a preloader, how should I initialise `liquidGL()`?                | Add the `data-liquid-ignore` attribute to your preloader's top-level container to exclude it from the snapshot. You can then call `liquidGL()` inside a `DOMContentLoaded` listener as you normally would.                                                                                                                                                                                                     |
 | What is the correct way to use `liquidGL` with page animations?          | Lets say you have a preloader, above the fold intro animations and scroll animations on your page. You would:<br><br>1) set the `data-liquid-ignore` attribute on your preloader<br>2) animate your preloader and set up your initial animation states<br>3) then call `liquidGL();`<br>4) optionally, in the `on.init();` callback, you can run post snapshot scripts, such as animating the `target` element |
-| Can I use `liquidGL` on multiple elements?                               | Yes, any element which has the class declared as your `target` will be glassified. Note **all elements must use the same `z-index`** due to shared canvas optimisations, if you use different `z-index` values for multiple targets, the highest value will be used by `liquidGL`.                                                                                                                             |
+| Can I use `liquidGL` on multiple elements?                               | Yes, any element which has the class declared as your `target` will be glassified. Note **all elements must use the same effective `zIndex`** due to shared canvas optimisations — set it explicitly with the `zIndex` option, or `liquidGL` will use the highest CSS `z-index` among matched elements.                                                                                                        |
 | Will the library exceed WebGL contexts or have other performance issues? | No, the library uses a shared canvas for all instances, we have tested up to 30 elements on one page and we were not able to cause performance problems or crashes.                                                                                                                                                                                                                                            |
 | Are there any animation limitations?                                     | It depends on what you're trying to do, rotation and scale are expensive CPU/GPU processes, additionally `shadow` `specular` and `tilt` should be used with care when you have lots of instances or complex animations as they can clog the render pipeline.                                                                                                                                                   |
+| How do I tint the glass?                                                 | Set `tint` to any CSS colour, e.g. `tint: "rgba(8, 10, 20, 0.25)"`. The colour's alpha is the dye strength — `0` (or `null`) leaves the glass clear. Adjust it at runtime with `lens.setTint("…")`; it's honoured by every backend, including the CSS fallback.                                                                                                                                                |
+| How do I get the viscous "fluid" cursor effect?                          | Set `interaction: "fluid"`, then tune `interactionStrength` (how far it displaces), `interactionRadius` (how wide the effect reaches) and `interactionViscosity` (how slowly it settles). It works with both mouse and touch.                                                                                                                                                                                  |
+| How do I add chromatic aberration?                                       | Set `aberration` above `0` (0–1). It disperses red and blue either side of the refraction vector, scaling with `refraction`, so the effect is strongest at the bevel and vanishes at the flat centre.                                                                                                                                                                                                          |
+| How do I stack lenses on top of each other?                              | Give the top lens a higher `zIndex` than the one(s) beneath it and initialise both against the same `snapshot`. The upper lens will refract the already-refracted output of the lens(es) below it — see the Stacked Lenses demo.                                                                                                                                                                               |
+| How do I put multiple independent lenses on one page?                    | Call `liquidGL()` once per group of elements (or once with a `target` selector matching several elements). All lenses matching the same `snapshot`, anchor and `zIndex` share a single canvas automatically — no extra setup required.                                                                                                                                                                         |
+| Do I need to configure WebGPU myself?                                    | No. `engine: 'auto'` (the default) tries WebGPU, then falls back through WebGL2, WebGL1 and finally CSS `backdrop-filter` automatically. Force a specific backend with `engine: 'webgpu' \| 'webgl2' \| 'webgl'`, or test one via `?liquidGL-engine=webgl2` in the URL.                                                                                                                                        |
+| How do I make a lens draggable?                                          | Set `draggable: true`, or call `lens.setDraggable(true)` at runtime. This disables `tilt` on that lens and fires `on.dragstart`, `on.drag` and `on.dragend` callbacks with the lens instance and current `{ x, y }` offset.                                                                                                                                                                                    |
+| How do I control which lens renders on top?                              | Set the `zIndex` option on each lens. It defaults to the element's own effective CSS z-index, but explicit `zIndex` is recommended once you have stacked or multiple lenses, since it also positions their `shadow` and `tilt` helper layers.                                                                                                                                                                  |
+| How do I remove a single lens without affecting the others?              | Call `lens.destroy()` on that lens instance. It restores the element's original styles, removes its listeners and releases its GPU resources, leaving any other lenses sharing the canvas untouched.                                                                                                                                                                                                           |
 
 ---
 
@@ -289,7 +294,7 @@ Passing `gsap` lets `liquidGL` drive its render loop from the GSAP ticker and ke
 
 - For dynamic content to be refracted in real-time, you must register the element(s) with `liquidGL.registerDynamic()`. It is crucial to set the initial state of your animations **before** calling `liquidGL()` to ensure they are captured correctly.
 - The library ignores `fixed` position elements, this is to prevent a known snapshotting bug on mobile browsers from surfacing which can prevent the snapshot from running. This is a safety net that shouldn't interfere with your use of the library.
-- You can have multiple instances on one page **but they must share the same `z-index` value**. If you specify different `z-index` values, `liquidGL` will use the highest `z-index` for all elements with the `target` selector. This is because the effect uses a shared canvas to prevent WebGL context issues, there is no work around to this unfortunately.
+- You can have multiple instances on one page **but they must share the same effective `zIndex`**. Set `zIndex` explicitly, or `liquidGL` will use the highest CSS `z-index` among elements matching the `target` selector. This is because the effect uses a shared canvas to prevent WebGL context issues, there is no work around to this unfortunately.
 - To improve performance on complex pages, you can snapshot a smaller, specific element like a background container instead of the whole page. Use the `snapshot` option with a CSS selector (e.g., `snapshot: '.my-background'`). This reduces texture memory and improves performance.
 - The initial capture is asynchronous. Call `liquidGL()` inside a `DOMContentLoaded` or `load` handler to ensure content is available to the snapshot.
 - Extremely long documents can exceed GPU texture limits, causing memory or performance issues. Consider segmenting very long pages (see source) or reducing the `resolution` parameter.
@@ -300,7 +305,7 @@ Passing `gsap` lets `liquidGL` drive its render loop from the GSAP ticker and ke
 
 ## Browser Support
 
-The `liquidGL` library is compatible with all WebGL enabled browsers on desktop, tablet and mobile devices.
+The `liquidGL` library is compatible with all modern browsers on desktop, tablet and mobile devices — WebGPU is used when available, with automatic fallback to WebGL (WebGL2 → WebGL1).
 
 > [!NOTE]  
 > Performance varies between browsers, specifically Safari can be unstable when the liquid element(s) are more than 50% of the viewport width or height. Practical use issues are rare, but make sure to test on your target devices thoroughly.

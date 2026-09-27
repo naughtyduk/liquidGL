@@ -1,0 +1,988 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tinted Glass - liquidGL – Liquid Glass - NaughtyDuk©</title>
+    <link rel="icon" href="/assets/images/favicon.ico" />
+    <meta
+      name="description"
+      content="A monochrome workout HUD built with Liquid Glass lenses tinted using the library's colour dye option."
+    />
+    <meta
+      name="keywords"
+      content="liquidGL, webGL, webGPU, liquid glass, glass tint, colour dye, dark mode, health UI, real-time, refraction, NaughtyDuk©"
+    />
+    <meta name="author" content="NaughtyDuk©" />
+    <meta name="robots" content="index, follow" />
+    <meta name="googlebot" content="index, follow" />
+    <meta property="og:image" content="/assets/images/_0008_tinted-glass.jpg" />
+    <meta
+      property="og:title"
+      content="Tinted Glass - liquidGL – Liquid Glass - NaughtyDuk©"
+    />
+    <meta
+      property="og:description"
+      content="A monochrome workout HUD built with Liquid Glass lenses tinted using the library's colour dye option."
+    />
+    <meta
+      property="og:url"
+      content="https://liquidgl.naughtyduk.com/demos/tinted-glass.html"
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="en_GB" />
+    <meta property="og:site_name" content="liquidGL" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta
+      name="twitter:title"
+      content="Tinted Glass - liquidGL – Liquid Glass - NaughtyDuk©"
+    />
+    <meta
+      name="twitter:description"
+      content="A monochrome workout HUD built with Liquid Glass lenses tinted using the library's colour dye option."
+    />
+    <meta
+      name="twitter:image"
+      content="/assets/images/_0008_tinted-glass.jpg"
+    />
+    <meta
+      name="twitter:url"
+      content="https://liquidgl.naughtyduk.com/demos/tinted-glass.html"
+    />
+    <style>
+      :root {
+        --text-color: #333333;
+        --bg-color: #ececec;
+        --secondary-text: rgba(0, 0, 0, 0.5);
+        scroll-behavior: auto;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
+          Arial, sans-serif;
+        background-color: var(--bg-color);
+        color: var(--text-color);
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        line-height: 1.5;
+        height: 100svh;
+        overflow: hidden;
+      }
+
+      @media (max-width: 768px) {
+        .lil-gui {
+          display: none !important;
+        }
+      }
+
+      .bg-video {
+        position: fixed;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        z-index: 0;
+        -webkit-user-drag: none;
+        -webkit-user-select: none;
+        user-select: none;
+      }
+
+      .bg-scrim {
+        position: fixed;
+        inset: 0;
+        z-index: 1;
+        background: rgba(0, 0, 0, 0.5);
+        pointer-events: none;
+      }
+
+      /* Global Navigation Styles */
+      .global-nav {
+        position: fixed;
+        top: 1rem;
+        left: 1rem;
+        z-index: 10000;
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
+          Arial, sans-serif;
+      }
+
+      .nav-container {
+        background: #120d0e;
+        backdrop-filter: blur(16px);
+        border-radius: 12px;
+        border: 0.5px solid #1e1e20;
+        overflow: hidden;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 4px 16px rgb(0 0 0 / 20%);
+      }
+
+      .nav-toggle {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 16px;
+        background: transparent;
+        border: none;
+        color: #f0f0f0;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 500;
+        width: 100%;
+        text-align: left;
+        transition: all 0.2s ease;
+      }
+
+      .nav-toggle:hover {
+        background: rgb(21 21 25);
+      }
+
+      .nav-toggle svg {
+        width: 16px;
+        height: 16px;
+        fill: currentColor;
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      .nav-container.expanded .nav-toggle svg {
+        transform: rotate(180deg);
+      }
+
+      .nav-menu {
+        max-height: 0;
+        overflow: scroll;
+        transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      .nav-container.expanded .nav-menu {
+        max-height: 420px;
+        overflow-y: auto;
+      }
+
+      .nav-item {
+        display: block;
+        padding: 10px 16px;
+        color: #88888f;
+        text-decoration: none;
+        font-size: 13px;
+        font-weight: 400;
+        transition: all 0.2s ease;
+        border-top: 0.5px solid #1e1e20;
+        position: relative;
+        cursor: pointer;
+      }
+
+      .nav-item:hover {
+        background: rgb(21 21 25);
+        color: #f0f0f0;
+      }
+
+      .nav-item.active {
+        color: #f0f0f0;
+        background: rgb(21 21 25);
+      }
+
+      .nav-item.active::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background: #fafafa;
+      }
+
+      @media (max-width: 768px) {
+        .global-nav {
+          top: 0.5rem;
+          left: 0.5rem;
+        }
+
+        .nav-toggle {
+          padding: 10px 14px;
+          font-size: 13px;
+        }
+
+        .nav-item {
+          padding: 8px 14px;
+          font-size: 12px;
+        }
+      }
+
+      /* --- Stage; centres the workout HUD lens over the footage --- */
+      .stage {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        pointer-events: none;
+        z-index: 100;
+        padding: 1rem;
+      }
+
+      /* Keep lens content above the fixed WebGL canvas */
+      .glass > * {
+        position: relative;
+        z-index: 2;
+      }
+
+      /* --- Card: one liquidGL lens holding all the content. The volume
+           bar and the playback controls are themselves nested glass
+           lenses layered on top of the card via z-index, so the library
+           composites them in stacking order — each one refracting the
+           tinted card beneath it (see D11 Stacked Lenses). Strictly
+           monochrome: no colour anywhere but the tint itself. --- */
+      .card {
+        position: relative;
+        width: min(380px, 92vw);
+        border-radius: 30px;
+        color: #f4f4f4;
+        pointer-events: auto !important;
+      }
+
+      .card-content {
+        position: relative;
+        z-index: 2;
+        display: flex;
+        flex-direction: column;
+        gap: 26px;
+        padding: 30px 28px;
+      }
+
+      .row {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+      }
+
+      .eyebrow {
+        font-size: 10px;
+        font-weight: 600;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: rgba(244, 244, 244, 0.4);
+      }
+
+      .clock {
+        font-family: "SFMono-Regular", Menlo, Consolas, monospace;
+        font-size: 11px;
+        font-weight: 500;
+        letter-spacing: 0.02em;
+        color: rgba(244, 244, 244, 0.55);
+        font-variant-numeric: tabular-nums;
+      }
+
+      .clock strong {
+        color: #f4f4f4;
+        font-weight: 600;
+      }
+
+      /* Session progress: a single hairline bar, no gimmicks */
+      .session-bar {
+        position: relative;
+        height: 1px;
+        background: rgba(244, 244, 244, 0.14);
+        border-radius: 1px;
+      }
+
+      .session-bar-fill {
+        position: absolute;
+        inset: 0;
+        width: 0%;
+        background: #f4f4f4;
+        border-radius: 1px;
+        transition: width 0.6s ease;
+      }
+
+      /* Hero metric: heart rate, the primary readout */
+      .metric-hero {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+
+      .metric-label {
+        font-size: 24px;
+        font-weight: 600;
+        letter-spacing: -0.04em;
+        text-transform: uppercase;
+        color: rgba(244, 244, 244, 0.4);
+      }
+
+      .metric-value-row {
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+      }
+
+      .metric-value {
+        font-size: 78px;
+        font-weight: 300;
+        letter-spacing: -0.03em;
+        line-height: 1;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .metric-unit {
+        font-size: 12px;
+        font-weight: 500;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: rgba(244, 244, 244, 0.4);
+      }
+
+      .waveform {
+        display: block;
+        width: 100%;
+        height: 28px;
+        overflow: visible;
+      }
+
+      .waveform path {
+        fill: none;
+        stroke: rgba(244, 244, 244, 0.75);
+        stroke-width: 1.25;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+
+      /* Stat trio: hairline-divided, tabular, quiet */
+      .stat-trio {
+        display: flex;
+      }
+
+      .stat {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+
+      .stat + .stat {
+        border-left: 1px solid rgba(244, 244, 244, 0.12);
+        padding-left: 18px;
+        margin-left: 18px;
+      }
+
+      .stat-label {
+        font-size: 9px;
+        font-weight: 600;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: rgba(244, 244, 244, 0.4);
+      }
+
+      .stat-value {
+        font-size: 20px;
+        font-weight: 400;
+        letter-spacing: -0.01em;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .stat-value small {
+        font-size: 11px;
+        font-weight: 400;
+        color: rgba(244, 244, 244, 0.4);
+        margin-left: 2px;
+      }
+
+      .divider {
+        height: 1px;
+        background: rgba(244, 244, 244, 0.12);
+      }
+
+      /* Volume: a single clean slider, its own nested glass lens */
+      .volume {
+        position: relative;
+        z-index: 3;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 14px 16px;
+        border-radius: 999px;
+        pointer-events: auto !important;
+      }
+
+      .volume-label {
+        flex-shrink: 0;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: rgba(244, 244, 244, 0.55);
+        min-width: 56px;
+      }
+
+      .volume-track {
+        position: relative;
+        flex: 1;
+        height: 2px;
+        border-radius: 1px;
+        background: rgba(244, 244, 244, 0.18);
+      }
+
+      .volume-fill {
+        position: absolute;
+        inset: 0;
+        width: 0%;
+        background: #f4f4f4;
+        border-radius: 1px;
+        transition: width 0.5s ease;
+      }
+
+      .volume-handle {
+        position: absolute;
+        top: 50%;
+        left: 0%;
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        background: #f4f4f4;
+        transform: translate(-50%, -50%);
+        transition: left 0.5s ease;
+      }
+
+      .volume-value {
+        flex-shrink: 0;
+        font-family: "SFMono-Regular", Menlo, Consolas, monospace;
+        font-size: 12px;
+        font-weight: 600;
+        font-variant-numeric: tabular-nums;
+        min-width: 26px;
+        text-align: right;
+        color: rgba(244, 244, 244, 0.75);
+      }
+
+      /* Playback controls: quiet, minimal, nested glass lenses */
+      .playback {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 22px;
+      }
+
+      .ctrl-btn {
+        position: relative;
+        z-index: 3;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        border: none;
+        background: transparent;
+        color: #f4f4f4;
+        cursor: pointer;
+        pointer-events: auto !important;
+        -webkit-tap-highlight-color: transparent;
+      }
+
+      .ctrl-btn.side {
+        width: 50px;
+        height: 50px;
+      }
+
+      .ctrl-btn.side svg {
+        width: 18px;
+        height: 18px;
+      }
+
+      .ctrl-btn.main {
+        width: 64px;
+        height: 64px;
+      }
+
+      .ctrl-btn.main svg {
+        width: 22px;
+        height: 22px;
+      }
+
+      .ctrl-btn svg {
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 1.5;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+
+      .ctrl-btn.main svg.icon-play {
+        fill: currentColor;
+        stroke: none;
+      }
+
+      @media (max-width: 420px) {
+        .card-content {
+          padding: 24px 20px;
+          gap: 22px;
+        }
+
+        .metric-value {
+          font-size: 64px;
+        }
+
+        .stat + .stat {
+          padding-left: 12px;
+          margin-left: 12px;
+        }
+      }
+
+      /* --- Demo disclaimer --- */
+      .demo-disclaimer {
+        position: fixed;
+        bottom: 2rem;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 100%;
+        max-width: 420px;
+        padding: 0 1rem;
+        text-align: center;
+        text-transform: uppercase;
+        z-index: 10001;
+        pointer-events: none;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        color: rgba(255, 255, 255, 0.92);
+      }
+
+      .demo-disclaimer .disclaimer-feature {
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: 0.02em;
+        margin-bottom: 6px;
+      }
+
+      .demo-disclaimer .disclaimer-note {
+        font-size: 9px;
+        font-weight: 400;
+        letter-spacing: -0.02em;
+        line-height: 1.25;
+        max-width: 280px;
+        color: rgba(255, 255, 255, 0.6);
+      }
+
+      @media (max-width: 640px) {
+        .demo-disclaimer .disclaimer-note {
+          display: none;
+        }
+        .demo-disclaimer {
+          bottom: 1rem !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <video
+      class="bg-video"
+      src="/assets/videos/lgl-glass-tint.mp4"
+      autoplay
+      loop
+      muted
+      playsinline
+      aria-hidden="true"
+    ></video>
+    <div class="bg-scrim"></div>
+
+    <!-- Global Navigation -->
+    <nav class="global-nav">
+      <div class="nav-container">
+        <button
+          class="nav-toggle"
+          aria-expanded="false"
+          aria-label="Toggle navigation menu"
+        >
+          <span>Demos</span>
+          <svg viewBox="0 0 16 16">
+            <path d="M8 11L3 6h10l-5 5z" />
+          </svg>
+        </button>
+        <div data-lenis-prevent class="nav-menu">
+          <a href="../index.html" class="nav-item">Index</a>
+          <a href="audio-player.html" class="nav-item">Audio Player</a>
+          <a href="menu-bar.html" class="nav-item">Menu Bar</a>
+          <a href="ai-search.html" class="nav-item">AI Search</a>
+          <a href="multiple-lenses.html" class="nav-item">Multiple Lenses</a>
+          <a href="chromatic-aberration.html" class="nav-item"
+            >Chromatic Aberration</a
+          >
+          <a href="fluid-interaction.html" class="nav-item"
+            >Fluid Interaction</a
+          >
+          <a href="frost-specular.html" class="nav-item">Frost & Specular</a>
+          <a href="tinted-glass.html" class="nav-item active">Tinted Glass</a>
+          <a href="stacked-lenses.html" class="nav-item">Stacked Lenses</a>
+          <a href="true-refraction.html" class="nav-item">True Refraction</a>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Monochrome dark-mode workout HUD. Everything lives inside the one
+         "card" glass lens; volume and the playback controls are their own
+         nested glass lenses stacked on top of it. -->
+    <div class="stage">
+      <div class="card glass" id="lens">
+        <div class="card-content">
+          <div class="row">
+            <span class="eyebrow">Full Body &middot; HIIT</span>
+            <span class="clock"
+              ><strong id="time-elapsed">18:42</strong> / 32:00</span
+            >
+          </div>
+
+          <div class="session-bar" aria-hidden="true">
+            <div class="session-bar-fill" id="session-fill"></div>
+          </div>
+
+          <div class="metric-hero">
+            <span class="metric-label">Heart Rate</span>
+            <div class="metric-value-row">
+              <span class="metric-value" id="hr-value">72</span>
+              <span class="metric-unit">bpm</span>
+            </div>
+            <svg
+              class="waveform"
+              viewBox="0 0 280 28"
+              preserveAspectRatio="none"
+            >
+              <path id="waveform-path" d="M0,14 L280,14"></path>
+            </svg>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="stat-trio">
+            <div class="stat">
+              <span class="stat-label">Sets Left</span>
+              <span class="stat-value" id="stat-sets"
+                >2<small>of 5</small></span
+              >
+            </div>
+            <div class="stat">
+              <span class="stat-label">Calories</span>
+              <span class="stat-value" id="stat-kcal"
+                >248<small>kcal</small></span
+              >
+            </div>
+            <div class="stat">
+              <span class="stat-label">Avg Pace</span>
+              <span class="stat-value">4.2<small>min/km</small></span>
+            </div>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="volume glass lens-control">
+            <span class="volume-label">Volume</span>
+            <div class="volume-track" id="volume-track">
+              <div class="volume-fill" id="volume-fill"></div>
+              <div class="volume-handle" id="volume-handle"></div>
+            </div>
+            <span class="volume-value" id="volume-value">54</span>
+          </div>
+
+          <div class="playback">
+            <button
+              class="ctrl-btn side glass lens-control"
+              id="prev-set"
+              aria-label="Previous set"
+            >
+              <svg viewBox="0 0 24 24">
+                <polyline points="11 17 6 12 11 7"></polyline>
+                <polyline points="18 17 13 12 18 7"></polyline>
+              </svg>
+            </button>
+            <button
+              class="ctrl-btn main glass lens-control"
+              id="play-pause"
+              aria-label="Pause workout"
+            >
+              <svg viewBox="0 0 24 24" class="icon-pause" id="play-pause-icon">
+                <rect x="6" y="4" width="4" height="16" rx="1"></rect>
+                <rect x="14" y="4" width="4" height="16" rx="1"></rect>
+              </svg>
+            </button>
+            <button
+              class="ctrl-btn side glass lens-control"
+              id="next-set"
+              aria-label="Next set"
+            >
+              <svg viewBox="0 0 24 24">
+                <polyline points="13 17 18 12 13 7"></polyline>
+                <polyline points="6 17 11 12 6 7"></polyline>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="demo-disclaimer">
+      <p class="disclaimer-feature">
+        Glass tint - soft green tinted health HUD
+      </p>
+      <p class="disclaimer-note">
+        Health metrics are for illustration purposes only. Consult your doctor
+        to learn about your own stats and to keep your body healthy.
+      </p>
+    </div>
+
+    <!-- Libraries -->
+    <script
+      src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"
+      integrity="sha384-HOvlOYPIs/zjoIkWUGXkVmXsjr8GuZLV+Q+rcPwmJOVZVpvTSXQChiN4t9Euv9Vc"
+      crossorigin="anonymous"
+    ></script>
+
+    <!-- Scripts -->
+    <script src="/scripts/liquidGL.js"></script>
+    <script src="/scripts/liquidGL-helper.js"></script>
+    <script>
+      let glassEffect;
+      let controlsGlassEffect;
+
+      document.addEventListener("DOMContentLoaded", () => {
+        /* Global Navigation Setup */
+        const navToggle = document.querySelector(".nav-toggle");
+        const navContainer = document.querySelector(".nav-container");
+
+        if (navToggle && navContainer) {
+          navToggle.addEventListener("click", () => {
+            const isExpanded = navContainer.classList.contains("expanded");
+            navContainer.classList.toggle("expanded");
+            navToggle.setAttribute("aria-expanded", !isExpanded);
+          });
+
+          document.addEventListener("click", (e) => {
+            if (!navContainer.contains(e.target)) {
+              navContainer.classList.remove("expanded");
+              navToggle.setAttribute("aria-expanded", "false");
+            }
+          });
+
+          document.addEventListener("keydown", (e) => {
+            if (
+              e.key === "Escape" &&
+              navContainer.classList.contains("expanded")
+            ) {
+              navContainer.classList.remove("expanded");
+              navToggle.setAttribute("aria-expanded", "false");
+            }
+          });
+        }
+
+        /* --- Heart rate + live waveform: a smooth continuous line built
+           from a rolling buffer of samples, redrawn every tick --- */
+        const hrValueEl = document.getElementById("hr-value");
+        const waveformPath = document.getElementById("waveform-path");
+        const SAMPLE_COUNT = 40;
+        const samples = new Array(SAMPLE_COUNT).fill(0.5);
+        let bpm = 72;
+        let phase = 0;
+
+        function buildWaveformPath() {
+          const w = 280;
+          const h = 28;
+          const step = w / (SAMPLE_COUNT - 1);
+          let d = "";
+          samples.forEach((v, i) => {
+            const x = i * step;
+            const y = h - v * h;
+            d += i === 0 ? `M${x},${y}` : ` L${x},${y}`;
+          });
+          waveformPath.setAttribute("d", d);
+        }
+
+        function tickWaveform() {
+          phase += 0.35;
+          samples.shift();
+          const beat = Math.sin(phase) * 0.28 + Math.sin(phase * 2.3) * 0.08;
+          samples.push(0.5 + beat);
+          buildWaveformPath();
+        }
+        buildWaveformPath();
+        setInterval(tickWaveform, 90);
+
+        setInterval(() => {
+          bpm += Math.round((Math.random() - 0.5) * 2);
+          bpm = Math.min(82, Math.max(65, bpm));
+          hrValueEl.textContent = bpm;
+        }, 1000);
+
+        /* --- Volume: a single clean slider fill + handle --- */
+        const volumeFill = document.getElementById("volume-fill");
+        const volumeHandle = document.getElementById("volume-handle");
+        const volumeValue = document.getElementById("volume-value");
+        let volume = 54;
+
+        function renderVolume() {
+          volumeFill.style.width = `${volume}%`;
+          volumeHandle.style.left = `${volume}%`;
+          volumeValue.textContent = Math.round(volume);
+        }
+        renderVolume();
+
+        setInterval(() => {
+          volume = Math.min(
+            100,
+            Math.max(20, volume + (Math.random() - 0.5) * 6),
+          );
+          renderVolume();
+        }, 2400);
+
+        /* --- Sets left, adjusted by the playback controls --- */
+        const statSetsEl = document.getElementById("stat-sets");
+        const SETS_TOTAL = 5;
+        let setsLeft = 2;
+
+        function renderSets() {
+          statSetsEl.innerHTML = `${setsLeft}<small>of ${SETS_TOTAL}</small>`;
+        }
+        renderSets();
+
+        document.getElementById("prev-set").addEventListener("click", () => {
+          setsLeft = Math.min(SETS_TOTAL, setsLeft + 1);
+          renderSets();
+        });
+        document.getElementById("next-set").addEventListener("click", () => {
+          setsLeft = Math.max(0, setsLeft - 1);
+          renderSets();
+        });
+
+        /* --- Play / pause toggle --- */
+        const playPauseBtn = document.getElementById("play-pause");
+        const playPauseIcon = document.getElementById("play-pause-icon");
+        let isPlaying = true;
+
+        playPauseBtn.addEventListener("click", () => {
+          isPlaying = !isPlaying;
+          playPauseIcon.innerHTML = isPlaying
+            ? '<rect x="6" y="4" width="4" height="16" rx="1"></rect><rect x="14" y="4" width="4" height="16" rx="1"></rect>'
+            : '<polygon points="6 3 20 12 6 21 6 3"></polygon>';
+          playPauseIcon.classList.toggle("icon-pause", isPlaying);
+          playPauseIcon.classList.toggle("icon-play", !isPlaying);
+          playPauseBtn.setAttribute(
+            "aria-label",
+            isPlaying ? "Pause workout" : "Resume workout",
+          );
+        });
+
+        /* --- Session clock + progress bar --- */
+        const timeElapsedEl = document.getElementById("time-elapsed");
+        const sessionFill = document.getElementById("session-fill");
+        const TOTAL_SECONDS = 32 * 60;
+        let elapsedSeconds = 18 * 60 + 42;
+
+        function renderTime() {
+          const m = String(Math.floor(elapsedSeconds / 60)).padStart(2, "0");
+          const s = String(elapsedSeconds % 60).padStart(2, "0");
+          timeElapsedEl.textContent = `${m}:${s}`;
+          sessionFill.style.width = `${Math.min(100, (elapsedSeconds / TOTAL_SECONDS) * 100)}%`;
+        }
+        renderTime();
+
+        setInterval(() => {
+          if (!isPlaying) return;
+          elapsedSeconds = Math.min(TOTAL_SECONDS, elapsedSeconds + 1);
+          renderTime();
+        }, 1000);
+
+        /* --- Calories gently accrue --- */
+        const statKcalEl = document.getElementById("stat-kcal");
+        let kcal = 248;
+        setInterval(() => {
+          if (!isPlaying) return;
+          kcal += Math.random() * 0.4;
+          statKcalEl.innerHTML = `${Math.round(kcal)}<small>kcal</small>`;
+        }, 2000);
+
+        /* Entrance animation */
+        gsap.set(".card", { opacity: 0, scale: 0.96, y: 12 });
+        gsap.set(".card-content > *", { opacity: 0, y: 10 });
+        gsap
+          .timeline({ delay: 0.15 })
+          .to(".card", {
+            opacity: 1,
+            scale: 1,
+            y: 0,
+            duration: 0.6,
+            ease: "power3.out",
+          })
+          .to(
+            ".card-content > *",
+            {
+              opacity: 1,
+              y: 0,
+              duration: 0.6,
+              ease: "power3.out",
+              stagger: 0.06,
+            },
+            "-=0.35",
+          );
+
+        function initializeliquidGL() {
+          glassEffect = liquidGL({
+            target: "#lens",
+            snapshot: "body",
+            content: false,
+            zIndex: 1,
+            resolution: 2,
+            refraction: 0.007,
+            aberration: 0,
+            bevelDepth: 0.06,
+            bevelWidth: 0.12,
+            frost: 4.2,
+            shadow: true,
+            specular: true,
+            reveal: "none",
+            tilt: false,
+            tiltFactor: 5,
+            tiltEase: 400,
+            draggable: false,
+            interaction: "none",
+            interactionStrength: 0.5,
+            interactionRadius: 0.35,
+            interactionViscosity: 0.65,
+            magnify: 1.03,
+            tint: "rgba(56, 56, 56, 0.6)",
+            helper: true,
+          });
+
+          /* Volume slider + playback controls: nested lenses stacked on
+             top of the card, composited above it in z-index order */
+          controlsGlassEffect = liquidGL({
+            target: ".lens-control",
+            snapshot: "body",
+            content: false,
+            zIndex: 2,
+            resolution: 2,
+            refraction: 0.009,
+            aberration: 0,
+            bevelDepth: 0.07,
+            bevelWidth: 0.14,
+            frost: 3.6,
+            shadow: true,
+            specular: true,
+            reveal: "none",
+            tilt: false,
+            draggable: false,
+            magnify: 1.08,
+            tint: "rgba(56, 56, 56, 0.1)",
+            helper: false,
+          });
+        }
+
+        initializeliquidGL();
+
+        window.addEventListener("load", () => {
+          liquidGL.syncWith();
+        });
+      });
+    </script>
+  </body>
+</html>

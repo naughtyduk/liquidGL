@@ -1,0 +1,1476 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Frost & Specular - liquidGL – Liquid Glass - NaughtyDuk©</title>
+    <link rel="icon" href="/assets/images/favicon.ico" />
+    <meta
+      name="description"
+      content="A Liquid Glass lens combining a frosted, diffuse core with a glossy specular highlight across its surface."
+    />
+    <meta
+      name="keywords"
+      content="liquidGL, webGL, webGPU, liquid glass, frost, specular highlights, blur, real-time, refraction, NaughtyDuk©"
+    />
+    <meta name="author" content="NaughtyDuk©" />
+    <meta name="robots" content="index, follow" />
+    <meta name="googlebot" content="index, follow" />
+    <meta
+      property="og:image"
+      content="/assets/images/_0004_frost-and-specular.jpg"
+    />
+    <meta
+      property="og:title"
+      content="Frost & Specular - liquidGL – Liquid Glass - NaughtyDuk©"
+    />
+    <meta
+      property="og:description"
+      content="A Liquid Glass lens combining a frosted, diffuse core with a glossy specular highlight across its surface."
+    />
+    <meta
+      property="og:url"
+      content="https://liquidgl.naughtyduk.com/demos/frost-specular.html"
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="en_GB" />
+    <meta property="og:site_name" content="liquidGL" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta
+      name="twitter:title"
+      content="Frost & Specular - liquidGL – Liquid Glass - NaughtyDuk©"
+    />
+    <meta
+      name="twitter:description"
+      content="A Liquid Glass lens combining a frosted, diffuse core with a glossy specular highlight across its surface."
+    />
+    <meta
+      name="twitter:image"
+      content="/assets/images/_0004_frost-and-specular.jpg"
+    />
+    <meta
+      name="twitter:url"
+      content="https://liquidgl.naughtyduk.com/demos/frost-specular.html"
+    />
+    <style>
+      :root {
+        --text-color: #333333;
+        --bg-color: #ececec;
+        --secondary-text: rgba(0, 0, 0, 0.5);
+        scroll-behavior: auto;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
+          Arial, sans-serif;
+        background-color: var(--bg-color);
+        color: var(--text-color);
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        line-height: 1.5;
+        height: 100svh;
+        overflow: hidden;
+      }
+
+      @media (max-width: 768px) {
+        .lil-gui {
+          display: none !important;
+        }
+      }
+
+      .bg-video {
+        position: fixed;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        z-index: 0;
+        -webkit-user-drag: none;
+        -webkit-user-select: none;
+        user-select: none;
+      }
+
+      .bg-scrim {
+        position: fixed;
+        inset: 0;
+        z-index: 1;
+        background: rgba(10, 10, 12, 0.35);
+        pointer-events: none;
+      }
+
+      /* Global Navigation Styles */
+      .global-nav {
+        position: fixed;
+        top: 1rem;
+        left: 1rem;
+        z-index: 10000;
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
+          Arial, sans-serif;
+      }
+
+      .nav-container {
+        background: #120d0e;
+        backdrop-filter: blur(16px);
+        border-radius: 12px;
+        border: 0.5px solid #1e1e20;
+        overflow: hidden;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 4px 16px rgb(0 0 0 / 20%);
+      }
+
+      .nav-toggle {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 16px;
+        background: transparent;
+        border: none;
+        color: #f0f0f0;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 500;
+        width: 100%;
+        text-align: left;
+        transition: all 0.2s ease;
+      }
+
+      .nav-toggle:hover {
+        background: rgb(21 21 25);
+      }
+
+      .nav-toggle svg {
+        width: 16px;
+        height: 16px;
+        fill: currentColor;
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      .nav-container.expanded .nav-toggle svg {
+        transform: rotate(180deg);
+      }
+
+      .nav-menu {
+        max-height: 0;
+        overflow: scroll;
+        transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      .nav-container.expanded .nav-menu {
+        max-height: 420px;
+        overflow-y: auto;
+      }
+
+      .nav-item {
+        display: block;
+        padding: 10px 16px;
+        color: #88888f;
+        text-decoration: none;
+        font-size: 13px;
+        font-weight: 400;
+        transition: all 0.2s ease;
+        border-top: 0.5px solid #1e1e20;
+        position: relative;
+        cursor: pointer;
+      }
+
+      .nav-item:hover {
+        background: rgb(21 21 25);
+        color: #f0f0f0;
+      }
+
+      .nav-item.active {
+        color: #f0f0f0;
+        background: rgb(21 21 25);
+      }
+
+      .nav-item.active::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background: #fafafa;
+      }
+
+      @media (max-width: 768px) {
+        .global-nav {
+          top: 0.5rem;
+          left: 0.5rem;
+        }
+
+        .nav-toggle {
+          padding: 10px 14px;
+          font-size: 13px;
+        }
+
+        .nav-item {
+          padding: 8px 14px;
+          font-size: 12px;
+        }
+      }
+
+      /* --- Drone HUD viewfinder: everything transparent, no hard blocks,
+           built from lines, ticks and glowing text floating over the
+           mountain footage. Greyscale base, blue = live/locked telemetry,
+           red = warning/recording. --- */
+      :root {
+        --hud-grey: rgba(255, 255, 255, 0.55);
+        --hud-grey-dim: rgba(255, 255, 255, 0.28);
+        --hud-grey-bright: rgba(255, 255, 255, 0.9);
+        --hud-blue: #6bd6ff;
+        --hud-red: #ff5064;
+        --hud-font: "SFMono-Regular", Menlo, Consolas, monospace;
+      }
+
+      .hud-stage {
+        position: fixed;
+        inset: 0;
+        z-index: 100;
+        pointer-events: none;
+      }
+
+      /* Keep lens content above the fixed WebGL canvas */
+      .glass > * {
+        position: relative;
+        z-index: 2;
+      }
+
+      /* --- Side tapes: soft dark fade at each edge (no hard border), a
+           column of ticks with a fixed centre pointer. Left reads
+           altitude, right mirrors it for air pressure --- */
+      .alt-tape {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        width: 84px;
+        overflow: hidden;
+      }
+
+      .alt-tape.right {
+        left: auto;
+        right: 0;
+      }
+
+      .alt-tape::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(
+          to right,
+          rgba(6, 8, 10, 0.4),
+          rgba(6, 8, 10, 0.12) 60%,
+          transparent
+        );
+      }
+
+      .alt-tape.right::before {
+        background: linear-gradient(
+          to left,
+          rgba(6, 8, 10, 0.4),
+          rgba(6, 8, 10, 0.12) 60%,
+          transparent
+        );
+      }
+
+      .alt-ticks {
+        position: absolute;
+        left: 22px;
+        top: 0;
+        bottom: 0;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-evenly;
+        animation: alt-drift 6s ease-in-out infinite;
+      }
+
+      .alt-tape.right .alt-ticks {
+        left: auto;
+        right: 22px;
+      }
+
+      @keyframes alt-drift {
+        0%,
+        100% {
+          transform: translateY(0);
+        }
+        50% {
+          transform: translateY(-6px);
+        }
+      }
+
+      .alt-tick {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        color: rgba(255, 255, 255, 0.32);
+      }
+
+      .alt-tape.right .alt-tick {
+        flex-direction: row-reverse;
+      }
+
+      .alt-tick .tick-line {
+        width: 10px;
+        height: 1px;
+        background: currentColor;
+      }
+
+      .alt-tick.major {
+        color: rgba(255, 255, 255, 0.5);
+      }
+
+      .alt-tick.major .tick-line {
+        width: 18px;
+        height: 1.5px;
+      }
+
+      .alt-tick.major .tick-label {
+        font-family: var(--hud-font);
+        font-size: 9px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        color: rgba(255, 255, 255, 0.88);
+      }
+
+      .alt-pointer {
+        position: absolute;
+        left: 0;
+        top: 50%;
+        transform: translateY(-50%);
+        display: flex;
+        align-items: baseline;
+        gap: 3px;
+        padding: 3px 8px 3px 6px;
+        font-family: var(--hud-font);
+      }
+
+      .alt-tape.right .alt-pointer {
+        left: auto;
+        right: 0;
+        flex-direction: row-reverse;
+        padding: 3px 6px 3px 8px;
+      }
+
+      .alt-pointer::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 0;
+        height: 0;
+        border-top: 5px solid transparent;
+        border-bottom: 5px solid transparent;
+        border-left: 6px solid var(--hud-blue);
+        filter: drop-shadow(0 0 4px rgba(107, 214, 255, 0.8));
+      }
+
+      .alt-tape.right .alt-pointer::before {
+        left: auto;
+        right: 0;
+        border-left: none;
+        border-right: 6px solid var(--hud-blue);
+      }
+
+      .alt-pointer-value {
+        margin-left: 8px;
+        font-size: 15px;
+        font-weight: 700;
+        color: var(--hud-blue);
+        text-shadow: 0 0 8px rgba(107, 214, 255, 0.6);
+        font-variant-numeric: tabular-nums;
+      }
+
+      .alt-tape.right .alt-pointer-value {
+        margin-left: 0;
+        margin-right: 8px;
+      }
+
+      .alt-pointer-unit {
+        font-size: 9px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        color: rgba(107, 214, 255, 0.65);
+      }
+
+      .alt-label {
+        position: absolute;
+        left: 22px;
+        top: -18px;
+        font-family: var(--hud-font);
+        font-size: 8px;
+        font-weight: 800;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: rgba(255, 255, 255, 0.7);
+      }
+
+      .alt-tape.right .alt-label {
+        left: auto;
+        right: 22px;
+        text-align: right;
+      }
+
+      /* --- Pitch ladder: faint horizon rungs behind the reticle, classic
+           FPV drone framing, laid out on a symmetric grid so the rungs
+           meet the reticle at the same height on both sides --- */
+      .pitch-ladder {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: min(640px, 90vw);
+        transform: translate(-50%, -50%);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 34px;
+      }
+
+      .pitch-row {
+        display: grid;
+        grid-template-columns: 24px 1fr 220px 1fr 24px;
+        align-items: center;
+        column-gap: 12px;
+        width: 100%;
+        color: rgba(255, 255, 255, 0.3);
+      }
+
+      .pitch-row .rung {
+        height: 1px;
+        width: 100%;
+        background: currentColor;
+      }
+
+      .pitch-row .deg {
+        font-family: var(--hud-font);
+        font-size: 9px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-align: center;
+      }
+
+      .pitch-row.zero {
+        color: rgba(255, 255, 255, 0.5);
+      }
+
+      .pitch-row.zero .rung {
+        max-width: 160px;
+        height: 1.5px;
+      }
+
+      /* --- Centre reticle: circular glass lens with crosshair ticks,
+           frost & specular render inside the circle itself --- */
+      .reticle-wrap {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 14px;
+      }
+
+      .reticle-eyebrow {
+        font-family: var(--hud-font);
+        font-size: 9px;
+        font-weight: 800;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--hud-grey);
+        transform: translateY(-8rem);
+      }
+
+      .reticle-shell {
+        position: relative;
+        width: min(220px, 56vw);
+        height: min(220px, 56vw);
+      }
+
+      .reticle {
+        position: absolute;
+        inset: 0;
+        border-radius: 50%;
+        overflow: hidden;
+        /* NOTE: intentionally no clip-path here. liquidGL's tilt sets
+           transform-style: preserve-3d + a perspective() transform on
+           this element, and clip-path combined with a 3D transform is a
+           known browser rendering conflict — the whole lens gets culled
+           and disappears on hover. border-radius + overflow:hidden is
+           enough to shape the glass render; the square corners of the
+           hit-box occasionally nudging the tilt is a much smaller issue
+           than the element vanishing. */
+        pointer-events: auto !important;
+      }
+
+      .reticle-frame {
+        position: absolute;
+        inset: -46px;
+        pointer-events: none;
+        z-index: 3;
+      }
+
+      .reticle-frame .ring {
+        position: absolute;
+        inset: 46px;
+        border-radius: 50%;
+        border: 1px solid rgba(255, 255, 255, 0.3);
+      }
+
+      .reticle-frame .ring.dashed {
+        inset: 32px;
+        border-style: dashed;
+        border-color: rgba(107, 214, 255, 0.4);
+        animation: reticle-spin 14s linear infinite;
+      }
+
+      @keyframes reticle-spin {
+        from {
+          transform: rotate(0deg);
+        }
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      .reticle-frame .tick {
+        position: absolute;
+        background: var(--hud-grey);
+      }
+
+      .reticle-frame .tick.n,
+      .reticle-frame .tick.s {
+        left: 50%;
+        width: 1.5px;
+        height: 14px;
+        transform: translateX(-50%);
+      }
+
+      .reticle-frame .tick.e,
+      .reticle-frame .tick.w {
+        top: 50%;
+        width: 14px;
+        height: 1.5px;
+        transform: translateY(-50%);
+      }
+
+      .reticle-frame .tick.n {
+        top: 0;
+      }
+      .reticle-frame .tick.s {
+        bottom: 0;
+      }
+      .reticle-frame .tick.e {
+        right: 0;
+      }
+      .reticle-frame .tick.w {
+        left: 0;
+      }
+
+      .reticle-cross::before,
+      .reticle-cross::after {
+        content: "";
+        position: absolute;
+        background: rgba(255, 255, 255, 0.4);
+        z-index: 2;
+      }
+
+      .reticle-cross::before {
+        left: 50%;
+        top: 18%;
+        bottom: 18%;
+        width: 1px;
+        transform: translateX(-50%);
+      }
+
+      .reticle-cross::after {
+        top: 50%;
+        left: 18%;
+        right: 18%;
+        height: 1px;
+        transform: translateY(-50%);
+      }
+
+      .reticle-dot {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: var(--hud-blue);
+        box-shadow: 0 0 8px 2px rgba(107, 214, 255, 0.85);
+        transform: translate(-50%, -50%);
+        z-index: 2;
+      }
+
+      .reticle-tag {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-family: var(--hud-font);
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--hud-grey);
+        transform: translateY(2rem);
+      }
+
+      .reticle-tag .tag-dot {
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: var(--hud-blue);
+        box-shadow: 0 0 6px 1px rgba(107, 214, 255, 0.9);
+        animation: marker-pulse 1.8s ease-in-out infinite;
+      }
+
+      @keyframes marker-pulse {
+        0%,
+        100% {
+          opacity: 0.6;
+        }
+        50% {
+          opacity: 1;
+        }
+      }
+
+      /* --- Small circular HUD nodes: compass + signal, transparent,
+           light-touch glass discs floating at the top corners --- */
+      .hud-node {
+        position: absolute;
+        top: 5.5rem;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .hud-node.compass {
+        left: 6.5rem;
+      }
+
+      .hud-node.signal {
+        right: 6.5rem;
+      }
+
+      .node-disc {
+        position: relative;
+        width: 52px;
+        height: 52px;
+        border-radius: 50%;
+        background: rgba(10, 12, 14, 0.28);
+        backdrop-filter: blur(6px);
+        -webkit-backdrop-filter: blur(6px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .node-disc svg {
+        width: 20px;
+        height: 20px;
+        color: var(--hud-grey-bright);
+      }
+
+      .compass-needle {
+        position: absolute;
+        inset: 0;
+        transition: transform 0.8s ease-out;
+      }
+
+      .compass-needle::before {
+        content: "";
+        position: absolute;
+        top: 3px;
+        left: 50%;
+        width: 0;
+        height: 0;
+        border-left: 3px solid transparent;
+        border-right: 3px solid transparent;
+        border-bottom: 8px solid var(--hud-red);
+        transform: translateX(-50%);
+        filter: drop-shadow(0 0 4px rgba(255, 80, 100, 0.7));
+      }
+
+      .node-label {
+        font-family: var(--hud-font);
+        font-size: 8px;
+        font-weight: 800;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--hud-grey-dim);
+      }
+
+      .node-value {
+        font-family: var(--hud-font);
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--hud-grey-bright);
+        font-variant-numeric: tabular-nums;
+      }
+
+      /* --- GPS coordinates: floating text, no box --- */
+      .gps-readout {
+        position: absolute;
+        left: 1.5rem;
+        bottom: 2rem;
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+        font-family: var(--hud-font);
+        font-size: 10px;
+        font-weight: 600;
+        letter-spacing: 0.03em;
+        color: var(--hud-grey);
+      }
+
+      .gps-readout .gps-label {
+        font-size: 8px;
+        font-weight: 800;
+        letter-spacing: 0.16em;
+        color: var(--hud-grey-dim);
+        margin-bottom: 1px;
+      }
+
+      /* --- Bottom dock: the one deliberately "solid-ish" element, a wide
+           floating clear glass bar of grouped telemetry + icons. This is
+           itself a liquidGL lens rather than a plain backdrop-filter
+           panel, so its own centring lives on a wrapper — liquidGL/GSAP
+           both drive the lens element's own transform (scale, tilt) and
+           would otherwise clobber a translateX(-50%) set on the same
+           element. */
+      .hud-dock-wrap {
+        position: absolute;
+        left: 50%;
+        bottom: 8rem;
+        transform: translateX(-50%);
+      }
+
+      .hud-dock {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 10px 20px;
+        border-radius: 999px;
+        overflow: hidden;
+        white-space: nowrap;
+        /* Collapsed to nothing so it never flashes full-size on load; the
+           intro timeline grows the real width so liquidGL's lens rect
+           genuinely expands (a transform-scale here would just squash the
+           glass render, reading as a rotate/skew) while the telemetry
+           groups fade/slide in once there's room for them */
+        width: 0;
+      }
+
+      .dock-item {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        font-family: var(--hud-font);
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        color: var(--hud-grey);
+        white-space: nowrap;
+        opacity: 0;
+      }
+
+      .dock-item svg,
+      .dock-item img {
+        width: 14px;
+        height: 14px;
+        color: var(--hud-grey-dim);
+        flex-shrink: 0;
+        opacity: 0.7;
+      }
+
+      .dock-item strong {
+        color: var(--hud-grey-bright);
+        font-weight: 700;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .dock-div {
+        width: 1px;
+        height: 16px;
+        background: rgba(255, 255, 255, 0.14);
+        opacity: 0;
+        flex-shrink: 0;
+      }
+
+      .dock-item.rec {
+        color: var(--hud-red);
+      }
+
+      .dock-item.rec strong {
+        color: var(--hud-red);
+      }
+
+      .rec-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--hud-red);
+        box-shadow: 0 0 6px 1px rgba(255, 80, 100, 0.85);
+        animation: marker-pulse 1.1s ease-in-out infinite;
+      }
+
+      @media (max-width: 768px) {
+        .alt-tape {
+          width: 60px;
+        }
+        .hud-node {
+          top: 5.5rem;
+        }
+        .hud-node.compass {
+          left: 4.5rem;
+        }
+        .hud-node.signal {
+          right: 4.5rem;
+        }
+        .reticle-tag {
+          margin-top: 2rem;
+          margin-bottom: 4rem;
+        }
+        .pitch-ladder {
+          gap: 24px;
+        }
+        .hud-dock-wrap {
+          bottom: 8.5rem;
+        }
+        .hud-dock {
+          gap: 10px;
+          padding: 8px 14px;
+          max-width: 92vw;
+        }
+        /* Only 3 items fit on mobile without clipping: keep SPD / PWR / REC,
+           drop PRESS, TEMP, WIND and their dividers */
+        .hud-dock > *:nth-child(3),
+        .hud-dock > *:nth-child(4),
+        .hud-dock > *:nth-child(5),
+        .hud-dock > *:nth-child(6),
+        .hud-dock > *:nth-child(7),
+        .hud-dock > *:nth-child(8) {
+          display: none;
+        }
+        .gps-readout {
+          display: none;
+        }
+      }
+
+      /* --- Demo disclaimer --- */
+      .demo-disclaimer {
+        position: fixed;
+        bottom: 2rem;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 100%;
+        max-width: 420px;
+        padding: 0 1rem;
+        text-align: center;
+        text-transform: uppercase;
+        z-index: 10001;
+        pointer-events: none;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        color: rgba(255, 255, 255, 0.92);
+      }
+
+      .demo-disclaimer .disclaimer-feature {
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: 0.02em;
+        margin-bottom: 6px;
+      }
+
+      .demo-disclaimer .disclaimer-note {
+        font-size: 9px;
+        font-weight: 400;
+        letter-spacing: -0.02em;
+        line-height: 1.25;
+        max-width: 280px;
+        color: rgba(255, 255, 255, 0.6);
+      }
+
+      @media (max-width: 640px) {
+        .demo-disclaimer .disclaimer-note {
+          display: none;
+        }
+        .demo-disclaimer {
+          bottom: 1rem !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <video
+      class="bg-video"
+      src="/assets/videos/lgl-frost-specular-opt.mp4"
+      autoplay
+      loop
+      muted
+      playsinline
+      aria-hidden="true"
+    ></video>
+    <div class="bg-scrim"></div>
+
+    <!-- Global Navigation -->
+    <nav class="global-nav">
+      <div class="nav-container">
+        <button
+          class="nav-toggle"
+          aria-expanded="false"
+          aria-label="Toggle navigation menu"
+        >
+          <span>Demos</span>
+          <svg viewBox="0 0 16 16">
+            <path d="M8 11L3 6h10l-5 5z" />
+          </svg>
+        </button>
+        <div data-lenis-prevent class="nav-menu">
+          <a href="../index.html" class="nav-item">Index</a>
+          <a href="audio-player.html" class="nav-item">Audio Player</a>
+          <a href="menu-bar.html" class="nav-item">Menu Bar</a>
+          <a href="ai-search.html" class="nav-item">AI Search</a>
+          <a href="multiple-lenses.html" class="nav-item">Multiple Lenses</a>
+          <a href="chromatic-aberration.html" class="nav-item"
+            >Chromatic Aberration</a
+          >
+          <a href="fluid-interaction.html" class="nav-item"
+            >Fluid Interaction</a
+          >
+          <a href="frost-specular.html" class="nav-item active"
+            >Frost & Specular</a
+          >
+          <a href="tinted-glass.html" class="nav-item">Tinted Glass</a>
+          <a href="stacked-lenses.html" class="nav-item">Stacked Lenses</a>
+          <a href="true-refraction.html" class="nav-item">True Refraction</a>
+        </div>
+      </div>
+    </nav>
+
+    <div class="hud-stage" id="hud-stage">
+      <!-- Left altitude tape -->
+      <div class="alt-tape">
+        <span class="alt-label">Altitude</span>
+        <div class="alt-ticks" id="alt-ticks"></div>
+        <div class="alt-pointer">
+          <span class="alt-pointer-value" id="alt-value">1240</span>
+          <span class="alt-pointer-unit">M</span>
+        </div>
+      </div>
+
+      <!-- Right pressure tape, mirrors the altitude tape -->
+      <div class="alt-tape right">
+        <span class="alt-label">Pressure</span>
+        <div class="alt-ticks" id="press-ticks"></div>
+        <div class="alt-pointer">
+          <span class="alt-pointer-value" id="press-value">1013</span>
+          <span class="alt-pointer-unit">hPa</span>
+        </div>
+      </div>
+
+      <!-- Pitch ladder -->
+      <div class="pitch-ladder" aria-hidden="true">
+        <div class="pitch-row">
+          <span class="deg">20</span><span class="rung"></span
+          ><span class="gap"></span><span class="rung"></span
+          ><span class="deg">20</span>
+        </div>
+        <div class="pitch-row">
+          <span class="deg">10</span><span class="rung"></span
+          ><span class="gap"></span><span class="rung"></span
+          ><span class="deg">10</span>
+        </div>
+        <div class="pitch-row zero">
+          <span class="deg">0</span><span class="rung"></span
+          ><span class="gap"></span><span class="rung"></span
+          ><span class="deg">0</span>
+        </div>
+        <div class="pitch-row">
+          <span class="deg">10</span><span class="rung"></span
+          ><span class="gap"></span><span class="rung"></span
+          ><span class="deg">10</span>
+        </div>
+        <div class="pitch-row">
+          <span class="deg">20</span><span class="rung"></span
+          ><span class="gap"></span><span class="rung"></span
+          ><span class="deg">20</span>
+        </div>
+      </div>
+
+      <!-- Compass node -->
+      <div class="hud-node compass">
+        <div class="node-disc">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.5"
+          >
+            <circle cx="12" cy="12" r="9" />
+          </svg>
+          <div class="compass-needle" id="compass-needle"></div>
+        </div>
+        <span class="node-value" id="hdg-value">274&deg;</span>
+        <span class="node-label">HDG</span>
+      </div>
+
+      <!-- Signal / GPS node -->
+      <div class="hud-node signal">
+        <div class="node-disc">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+          >
+            <path d="M5 13a10 10 0 0 1 14 0" />
+            <path d="M8.5 16.5a5 5 0 0 1 7 0" />
+            <line x1="12" y1="20" x2="12.01" y2="20" />
+          </svg>
+        </div>
+        <span class="node-value">GPS</span>
+        <span class="node-label">Lock</span>
+      </div>
+
+      <!-- Centre reticle: liquidGL glass target with frost + specular -->
+      <div class="reticle-wrap">
+        <span class="reticle-eyebrow"
+          >Feature 04 &middot; Frost &amp; Specular</span
+        >
+        <div class="reticle-shell">
+          <div class="reticle glass" id="lens">
+            <div class="reticle-cross" aria-hidden="true"></div>
+            <div class="reticle-dot" aria-hidden="true"></div>
+          </div>
+          <div class="reticle-frame" aria-hidden="true">
+            <span class="ring"></span>
+            <span class="ring dashed"></span>
+            <span class="tick n"></span>
+            <span class="tick s"></span>
+            <span class="tick e"></span>
+            <span class="tick w"></span>
+          </div>
+        </div>
+        <span class="reticle-tag"
+          ><span class="tag-dot"></span>Target Locked</span
+        >
+      </div>
+
+      <!-- GPS coordinates, floating text only -->
+      <div class="gps-readout">
+        <span class="gps-label">Position</span>
+        <span id="gps-lat">46.5197&deg; N</span>
+        <span id="gps-lon">6.6323&deg; E</span>
+      </div>
+
+      <!-- Bottom dock: grouped telemetry, itself a liquidGL lens -->
+      <div class="hud-dock-wrap">
+        <div class="hud-dock glass" id="hud-dock">
+          <div class="dock-item">
+            <img
+              src="/assets/images/lucide-gauge.svg"
+              alt=""
+              aria-hidden="true"
+            />
+            SPD<strong id="dock-spd">14.2</strong>
+          </div>
+          <span class="dock-div"></span>
+          <div class="dock-item">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.5"
+            >
+              <circle cx="12" cy="12" r="9" />
+              <path d="M12 12l4-3" />
+            </svg>
+            PRESS<strong id="dock-press">1013</strong>
+          </div>
+          <span class="dock-div"></span>
+          <div class="dock-item">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z" />
+            </svg>
+            TEMP<strong id="dock-temp">-4&deg;C</strong>
+          </div>
+          <span class="dock-div"></span>
+          <div class="dock-item">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M9.59 4.59A2 2 0 1 1 11 8H2" />
+              <path d="M12.59 11.59A2 2 0 1 1 14 15H2" />
+              <path d="M17.73 7.73A2.5 2.5 0 1 1 19.5 12H2" />
+            </svg>
+            WIND<strong id="dock-wind">12kt</strong>
+          </div>
+          <span class="dock-div"></span>
+          <div class="dock-item">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <rect x="2" y="7" width="16" height="10" rx="2" />
+              <line x1="22" y1="11" x2="22" y2="13" />
+            </svg>
+            PWR<strong id="dock-pwr">86%</strong>
+          </div>
+          <span class="dock-div"></span>
+          <div class="dock-item rec">
+            <span class="rec-dot"></span>
+            REC<strong id="dock-rec">00:00</strong>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="demo-disclaimer">
+      <p class="disclaimer-feature">
+        Frost &amp; specular - diffuse core, glossy surface
+      </p>
+      <p class="disclaimer-note">
+        Dock UI is for illustration purposes only, it does not perform screen
+        recording or represent any real operating system.
+      </p>
+    </div>
+
+    <!-- Libraries -->
+    <script
+      src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"
+      integrity="sha384-HOvlOYPIs/zjoIkWUGXkVmXsjr8GuZLV+Q+rcPwmJOVZVpvTSXQChiN4t9Euv9Vc"
+      crossorigin="anonymous"
+    ></script>
+
+    <!-- Scripts -->
+    <script src="/scripts/liquidGL.js"></script>
+    <script src="/scripts/liquidGL-helper.js"></script>
+    <script>
+      let glassEffect;
+      let dockGlassEffect;
+
+      document.addEventListener("DOMContentLoaded", () => {
+        /* Global Navigation Setup */
+        const navToggle = document.querySelector(".nav-toggle");
+        const navContainer = document.querySelector(".nav-container");
+
+        if (navToggle && navContainer) {
+          navToggle.addEventListener("click", () => {
+            const isExpanded = navContainer.classList.contains("expanded");
+            navContainer.classList.toggle("expanded");
+            navToggle.setAttribute("aria-expanded", !isExpanded);
+          });
+
+          // Close navigation when clicking outside
+          document.addEventListener("click", (e) => {
+            if (!navContainer.contains(e.target)) {
+              navContainer.classList.remove("expanded");
+              navToggle.setAttribute("aria-expanded", "false");
+            }
+          });
+
+          // Close navigation when pressing Escape
+          document.addEventListener("keydown", (e) => {
+            if (
+              e.key === "Escape" &&
+              navContainer.classList.contains("expanded")
+            ) {
+              navContainer.classList.remove("expanded");
+              navToggle.setAttribute("aria-expanded", "false");
+            }
+          });
+        }
+
+        /* Side tapes: nine ticks centred on the live reading, major ticks
+           carry a label, the rest are bare marks. Shared renderer serves
+           both the altitude (left) and pressure (right) tapes */
+        const altTicksEl = document.getElementById("alt-ticks");
+        const altValueEl = document.getElementById("alt-value");
+        const pressTicksEl = document.getElementById("press-ticks");
+        const pressValueEl = document.getElementById("press-value");
+        let altitude = 1240;
+
+        function renderTicks(el, centreValue, step) {
+          const rows = [];
+          for (let i = 0; i < 9; i++) {
+            const value =
+              Math.round((centreValue + (4 - i) * step) / (step / 2)) *
+              (step / 2);
+            const major = i % 2 === 0;
+            /* The two/three rows nearest the vertical centre sit right
+               behind the glowing pointer readout, which already repeats
+               the same value — fade their labels out so the two never
+               visually collide */
+            const distFromCentre = Math.abs(i - 4);
+            const labelOpacity =
+              distFromCentre === 0 ? 0 : distFromCentre === 1 ? 0.3 : 1;
+            rows.push(
+              `<div class="alt-tick${major ? " major" : ""}"><span class="tick-line"></span>${
+                major
+                  ? `<span class="tick-label" style="opacity:${labelOpacity}">${value}</span>`
+                  : ""
+              }</div>`,
+            );
+          }
+          el.innerHTML = rows.join("");
+        }
+        function renderAltTicks() {
+          renderTicks(altTicksEl, altitude, 20);
+        }
+        function renderPressTicks(pressValue) {
+          renderTicks(pressTicksEl, pressValue, 2);
+        }
+        renderAltTicks();
+        renderPressTicks(1013);
+
+        /* Compass heading */
+        const compassNeedle = document.getElementById("compass-needle");
+        const hdgValueEl = document.getElementById("hdg-value");
+        let heading = 274;
+
+        /* GPS coordinates drift */
+        const gpsLatEl = document.getElementById("gps-lat");
+        const gpsLonEl = document.getElementById("gps-lon");
+        let gpsLat = 46.5197,
+          gpsLon = 6.6323;
+
+        /* Bottom dock telemetry */
+        const dockSpd = document.getElementById("dock-spd");
+        const dockPress = document.getElementById("dock-press");
+        const dockTemp = document.getElementById("dock-temp");
+        const dockWind = document.getElementById("dock-wind");
+        const dockPwr = document.getElementById("dock-pwr");
+        let spd = 14.2,
+          press = 1013,
+          temp = -4,
+          wind = 12,
+          pwr = 86;
+
+        const telemetryTick = () => {
+          altitude = Math.max(600, altitude + (Math.random() - 0.5) * 6);
+          altValueEl.textContent = Math.round(altitude);
+          renderAltTicks();
+
+          heading = (heading + (Math.random() - 0.5) * 8 + 360) % 360;
+          hdgValueEl.textContent = `${Math.round(heading)}\u00b0`;
+          compassNeedle.style.transform = `rotate(${heading}deg)`;
+
+          gpsLat += (Math.random() - 0.5) * 0.0006;
+          gpsLon += (Math.random() - 0.5) * 0.0006;
+          gpsLatEl.textContent = `${gpsLat.toFixed(4)}\u00b0 N`;
+          gpsLonEl.textContent = `${gpsLon.toFixed(4)}\u00b0 E`;
+
+          spd = Math.max(0, spd + (Math.random() - 0.5) * 0.8);
+          press = press + (Math.random() - 0.5) * 0.6;
+          temp = temp + (Math.random() - 0.5) * 0.3;
+          wind = Math.max(0, wind + (Math.random() - 0.5) * 1.2);
+          pwr = Math.max(0, pwr - Math.random() * 0.05);
+          dockSpd.textContent = spd.toFixed(1);
+          dockPress.textContent = Math.round(press);
+          dockTemp.textContent = `${temp.toFixed(1)}\u00b0C`;
+          dockWind.textContent = `${wind.toFixed(1)}kt`;
+          dockPwr.textContent = `${Math.round(pwr)}%`;
+
+          pressValueEl.textContent = Math.round(press);
+          renderPressTicks(press);
+        };
+        telemetryTick();
+        setInterval(telemetryTick, 1400);
+
+        /* Recording timer */
+        const dockRec = document.getElementById("dock-rec");
+        let recSeconds = 0;
+        setInterval(() => {
+          recSeconds++;
+          const m = String(Math.floor(recSeconds / 60)).padStart(2, "0");
+          const s = String(recSeconds % 60).padStart(2, "0");
+          dockRec.textContent = `${m}:${s}`;
+        }, 1000);
+
+        /* Entrance animation: HUD elements settle in from their own
+           edges/positions, reticle last like a lens locking on */
+        gsap.set(
+          [
+            ".alt-tape",
+            ".hud-node.compass",
+            ".hud-node.signal",
+            ".gps-readout",
+            ".hud-dock",
+          ],
+          { opacity: 0 },
+        );
+        gsap.set(".alt-tape:not(.right)", { x: -16 });
+        gsap.set(".alt-tape.right", { x: 16 });
+        gsap.set(".hud-node.compass, .hud-node.signal", { y: -12 });
+        gsap.set(".gps-readout", { y: 12 });
+        gsap.set(".hud-dock", { width: 0 });
+        gsap.set(".dock-item, .dock-div", { opacity: 0, y: 8 });
+        gsap.set(".pitch-ladder", { opacity: 0, scale: 1.05 });
+        gsap.set(".reticle-frame, .reticle-eyebrow, .reticle-tag", {
+          opacity: 0,
+        });
+
+        const tl = gsap.timeline({ delay: 0.15 });
+        tl.to(".pitch-ladder", {
+          opacity: 1,
+          scale: 1,
+          duration: 0.8,
+          ease: "power2.out",
+        })
+          .from(
+            /* Animate the wrapper, never #lens itself: liquidGL's tilt
+               reads #lens's inline transform once (on first bind, which
+               happens async after WebGPU init) and caches it forever as
+               its "base" transform, re-composing it into every tilt frame
+               afterward. GSAP's .from() applies its start value
+               (transform: scale(0)) immediately/synchronously, so if that
+               landed on #lens itself, tilt would permanently bake in a
+               zero-scale base and the lens would vanish the moment you
+               hover it. */
+            ".reticle-shell",
+            {
+              opacity: 0,
+              scale: 0,
+              duration: 0.9,
+              ease: "power3.out",
+            },
+            "-=0.5",
+          )
+          .to(
+            ".reticle-frame",
+            { opacity: 1, duration: 0.5, ease: "power2.out" },
+            "-=0.4",
+          )
+          .to(
+            ".reticle-eyebrow, .reticle-tag",
+            { opacity: 1, duration: 0.4, stagger: 0.1 },
+            "-=0.3",
+          )
+          .to(
+            ".alt-tape",
+            { opacity: 1, x: 0, duration: 0.6, ease: "power2.out" },
+            "-=0.5",
+          )
+          .to(
+            ".hud-node.compass, .hud-node.signal",
+            {
+              opacity: 1,
+              y: 0,
+              duration: 0.5,
+              stagger: 0.1,
+              ease: "power2.out",
+            },
+            "-=0.4",
+          )
+          .to(
+            ".gps-readout",
+            { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" },
+            "-=0.3",
+          )
+          .to(
+            ".hud-dock",
+            {
+              opacity: 1,
+              width: "auto",
+              duration: 1.2,
+              ease: "power2.inOut",
+            },
+            "-=1.2",
+          )
+          .to(
+            ".dock-item, .dock-div",
+            {
+              opacity: 1,
+              y: 0,
+              duration: 0.5,
+              ease: "power2.out",
+              stagger: { each: 0.08, from: "center" },
+            },
+            "<0.25",
+          );
+
+        function initializeliquidGL() {
+          glassEffect = liquidGL({
+            target: "#lens",
+            snapshot: "body",
+            resolution: 2,
+            refraction: 0.008,
+            aberration: 0,
+            bevelDepth: 0.08,
+            bevelWidth: 0.15,
+            frost: 4,
+            shadow: true,
+            specular: true,
+            reveal: "none",
+            tilt: true,
+            tiltFactor: 4,
+            tiltEase: 500,
+            draggable: false,
+            magnify: 1.15,
+            tint: null,
+            helper: true,
+          });
+
+          /* Bottom dock: its own lens (clear, untinted) rather than a
+             plain CSS backdrop-filter panel */
+          dockGlassEffect = liquidGL({
+            target: "#hud-dock",
+            snapshot: "body",
+            resolution: 2,
+            refraction: 0.006,
+            aberration: 0,
+            bevelDepth: 0.04,
+            bevelWidth: 0.1,
+            frost: 6,
+            shadow: true,
+            specular: true,
+            reveal: "none",
+            tilt: false,
+            draggable: false,
+            magnify: 1,
+            tint: null,
+            helper: false,
+          });
+        }
+
+        initializeliquidGL();
+
+        window.addEventListener("load", () => {
+          liquidGL.syncWith();
+        });
+      });
+    </script>
+  </body>
+</html>

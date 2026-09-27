@@ -1,0 +1,655 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Stacked Lenses - liquidGL – Liquid Glass - NaughtyDuk©</title>
+    <link rel="icon" href="/assets/images/favicon.ico" />
+    <meta
+      name="description"
+      content="Multiple Liquid Glass lenses layered on top of each other, each refracting the composited result of the one beneath it."
+    />
+    <meta
+      name="keywords"
+      content="liquidGL, webGL, webGPU, liquid glass, stacked lenses, compositing, layered glass, real-time, refraction, NaughtyDuk©"
+    />
+    <meta name="author" content="NaughtyDuk©" />
+    <meta name="robots" content="index, follow" />
+    <meta name="googlebot" content="index, follow" />
+    <meta
+      property="og:image"
+      content="/assets/images/_0007_stacked-lenses.jpg"
+    />
+    <meta
+      property="og:title"
+      content="Stacked Lenses - liquidGL – Liquid Glass - NaughtyDuk©"
+    />
+    <meta
+      property="og:description"
+      content="Multiple Liquid Glass lenses layered on top of each other, each refracting the composited result of the one beneath it."
+    />
+    <meta
+      property="og:url"
+      content="https://liquidgl.naughtyduk.com/demos/stacked-lenses.html"
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="en_GB" />
+    <meta property="og:site_name" content="liquidGL" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta
+      name="twitter:title"
+      content="Stacked Lenses - liquidGL – Liquid Glass - NaughtyDuk©"
+    />
+    <meta
+      name="twitter:description"
+      content="Multiple Liquid Glass lenses layered on top of each other, each refracting the composited result of the one beneath it."
+    />
+    <meta
+      name="twitter:image"
+      content="/assets/images/_0007_stacked-lenses.jpg"
+    />
+    <meta
+      name="twitter:url"
+      content="https://liquidgl.naughtyduk.com/demos/stacked-lenses.html"
+    />
+    <style>
+      :root {
+        --text-color: #333333;
+        --bg-color: #ececec;
+        --secondary-text: rgba(0, 0, 0, 0.5);
+        scroll-behavior: auto;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
+          Arial, sans-serif;
+        background-color: var(--bg-color);
+        color: var(--text-color);
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        line-height: 1.5;
+        height: 100svh;
+        overflow: hidden;
+      }
+
+      @media (max-width: 768px) {
+        .lil-gui {
+          display: none !important;
+        }
+      }
+
+      .bg-video {
+        position: fixed;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        z-index: 0;
+        -webkit-user-drag: none;
+        -webkit-user-select: none;
+        user-select: none;
+      }
+
+      .bg-scrim {
+        position: fixed;
+        inset: 0;
+        z-index: 1;
+        background: rgba(10, 10, 12, 0.35);
+        pointer-events: none;
+      }
+
+      /* Global Navigation Styles */
+      .global-nav {
+        position: fixed;
+        top: 1rem;
+        left: 1rem;
+        z-index: 10000;
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
+          Arial, sans-serif;
+      }
+
+      .nav-container {
+        background: #120d0e;
+        backdrop-filter: blur(16px);
+        border-radius: 12px;
+        border: 0.5px solid #1e1e20;
+        overflow: hidden;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 4px 16px rgb(0 0 0 / 20%);
+      }
+
+      .nav-toggle {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 16px;
+        background: transparent;
+        border: none;
+        color: #f0f0f0;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 500;
+        width: 100%;
+        text-align: left;
+        transition: all 0.2s ease;
+      }
+
+      .nav-toggle:hover {
+        background: rgb(21 21 25);
+      }
+
+      .nav-toggle svg {
+        width: 16px;
+        height: 16px;
+        fill: currentColor;
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      .nav-container.expanded .nav-toggle svg {
+        transform: rotate(180deg);
+      }
+
+      .nav-menu {
+        max-height: 0;
+        overflow: scroll;
+        transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      .nav-container.expanded .nav-menu {
+        max-height: 420px;
+        overflow-y: auto;
+      }
+
+      .nav-item {
+        display: block;
+        padding: 10px 16px;
+        color: #88888f;
+        text-decoration: none;
+        font-size: 13px;
+        font-weight: 400;
+        transition: all 0.2s ease;
+        border-top: 0.5px solid #1e1e20;
+        position: relative;
+        cursor: pointer;
+      }
+
+      .nav-item:hover {
+        background: rgb(21 21 25);
+        color: #f0f0f0;
+      }
+
+      .nav-item.active {
+        color: #f0f0f0;
+        background: rgb(21 21 25);
+      }
+
+      .nav-item.active::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background: #fafafa;
+      }
+
+      @media (max-width: 768px) {
+        .global-nav {
+          top: 0.5rem;
+          left: 0.5rem;
+        }
+
+        .nav-toggle {
+          padding: 10px 14px;
+          font-size: 13px;
+        }
+
+        .nav-item {
+          padding: 8px 14px;
+          font-size: 12px;
+        }
+      }
+
+      /* --- Stage; centre holds the liquidGL lens --- */
+      .stage {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        pointer-events: none;
+        z-index: 100;
+        padding: 1rem;
+      }
+
+      /* Keep lens content above the fixed WebGL canvas */
+      .glass > * {
+        position: relative;
+        z-index: 2;
+      }
+
+      /* --- Demo disclaimer --- */
+      .demo-disclaimer {
+        position: fixed;
+        bottom: 2rem;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 100%;
+        max-width: 420px;
+        padding: 0 1rem;
+        text-align: center;
+        text-transform: uppercase;
+        z-index: 10001;
+        pointer-events: none;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        color: rgba(255, 255, 255, 0.92);
+      }
+
+      .demo-disclaimer .disclaimer-feature {
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: 0.02em;
+        margin-bottom: 6px;
+      }
+
+      .demo-disclaimer .disclaimer-note {
+        font-size: 9px;
+        font-weight: 400;
+        letter-spacing: -0.02em;
+        line-height: 1.25;
+        max-width: 280px;
+        color: rgba(255, 255, 255, 0.6);
+      }
+
+      @media (max-width: 640px) {
+        .demo-disclaimer .disclaimer-note {
+          display: none;
+        }
+        .demo-disclaimer {
+          bottom: 1rem !important;
+        }
+      }
+
+      /* --- Parent pane with inner lenses: left ~50%, bottom band --- */
+      .stack-wrap {
+        position: relative;
+        width: min(560px, 94vw);
+        aspect-ratio: 560 / 350;
+      }
+
+      .stack-card {
+        position: absolute;
+        color: #f0f0f0;
+        pointer-events: auto !important;
+      }
+
+      /* Parent: full card pane */
+      .stack-card.l1 {
+        inset: 0;
+        border-radius: 26px;
+        z-index: 1;
+      }
+
+      /* Inner left lens: symbol + name up top, serial pinned bottom */
+      .stack-card.l2 {
+        top: 24px;
+        left: 24px;
+        bottom: 132px;
+        width: calc(50% - 36px);
+        border-radius: 18px;
+        z-index: 2;
+        padding: 16px 18px;
+        display: flex;
+        flex-direction: column;
+      }
+
+      /* Inner bottom lens: stat band + footer */
+      .stack-card.l3 {
+        left: 24px;
+        right: 24px;
+        bottom: 24px;
+        height: 96px;
+        border-radius: 14px;
+        z-index: 3;
+        padding: 12px 16px 10px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+      }
+
+      .chem-symbol {
+        font-size: 30px;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        line-height: 1.1;
+      }
+
+      .chem-name {
+        font-size: 10px;
+        font-weight: 600;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: rgba(255, 255, 255, 0.55);
+        margin-top: 2px;
+      }
+
+      .card-serial {
+        margin-top: auto;
+        font-family: "SFMono-Regular", Menlo, Consolas, monospace;
+        font-size: 9px;
+        letter-spacing: 0.08em;
+        line-height: 1.7;
+        color: rgba(255, 255, 255, 0.6);
+      }
+
+      .card-stats {
+        display: flex;
+        justify-content: space-between;
+        gap: 18px;
+      }
+
+      .stat {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+
+      .stat-label {
+        font-size: 8px;
+        font-weight: 800;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: rgba(255, 255, 255, 0.5);
+      }
+
+      .stat-value {
+        font-family: "SFMono-Regular", Menlo, Consolas, monospace;
+        font-size: 13px;
+        font-variant-numeric: tabular-nums;
+        color: #f0f0f0;
+      }
+
+      .card-bottom {
+        display: flex;
+        justify-content: space-between;
+        font-family: "SFMono-Regular", Menlo, Consolas, monospace;
+        font-size: 9px;
+        letter-spacing: 0.08em;
+        color: rgba(255, 255, 255, 0.55);
+        border-top: 1px solid rgba(255, 255, 255, 0.18);
+        padding-top: 8px;
+      }
+
+      @media (max-width: 560px) {
+        /* Portrait stack: parent fixed height, top lens full width,
+           bottom lens grows to hold a 2x2 stat grid */
+        .stack-wrap {
+          width: min(420px, 94vw);
+          aspect-ratio: auto;
+          height: 520px;
+        }
+
+        .stack-card.l2 {
+          right: 24px;
+          width: auto;
+          bottom: 184px;
+        }
+
+        .stack-card.l3 {
+          height: 148px;
+        }
+
+        .card-stats {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 10px 16px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <video
+      class="bg-video"
+      src="/assets/videos/lgl-stacked-lenses-opt.mp4"
+      autoplay
+      loop
+      muted
+      playsinline
+      aria-hidden="true"
+    ></video>
+    <div class="bg-scrim"></div>
+
+    <!-- Global Navigation -->
+    <nav class="global-nav">
+      <div class="nav-container">
+        <button
+          class="nav-toggle"
+          aria-expanded="false"
+          aria-label="Toggle navigation menu"
+        >
+          <span>Demos</span>
+          <svg viewBox="0 0 16 16">
+            <path d="M8 11L3 6h10l-5 5z" />
+          </svg>
+        </button>
+        <div data-lenis-prevent class="nav-menu">
+          <a href="../index.html" class="nav-item">Index</a>
+          <a href="audio-player.html" class="nav-item">Audio Player</a>
+          <a href="menu-bar.html" class="nav-item">Menu Bar</a>
+          <a href="ai-search.html" class="nav-item">AI Search</a>
+          <a href="multiple-lenses.html" class="nav-item">Multiple Lenses</a>
+          <a href="chromatic-aberration.html" class="nav-item"
+            >Chromatic Aberration</a
+          >
+          <a href="fluid-interaction.html" class="nav-item"
+            >Fluid Interaction</a
+          >
+          <a href="frost-specular.html" class="nav-item">Frost & Specular</a>
+          <a href="tinted-glass.html" class="nav-item">Tinted Glass</a>
+          <a href="stacked-lenses.html" class="nav-item active"
+            >Stacked Lenses</a
+          >
+          <a href="true-refraction.html" class="nav-item">True Refraction</a>
+        </div>
+      </div>
+    </nav>
+
+    <div class="stage">
+      <div class="stack-wrap">
+        <div class="stack-card glass l1" id="lens-l1"></div>
+        <div class="stack-card glass l2" id="lens-l2">
+          <div>
+            <div class="chem-symbol">H₂O</div>
+            <div class="chem-name">Dihydrogen Monoxide</div>
+          </div>
+          <div class="card-serial">SPEC-0882-A<br />NGT LAB 12</div>
+        </div>
+        <div class="stack-card glass l3" id="lens-l3">
+          <div class="card-stats">
+            <div class="stat">
+              <span class="stat-label">Molar Mass</span>
+              <span class="stat-value">18.015 g/mol</span>
+            </div>
+            <div class="stat">
+              <span class="stat-label">Boiling Pt</span>
+              <span class="stat-value" id="chem-value">102.4 °C</span>
+            </div>
+            <div class="stat">
+              <span class="stat-label">Density</span>
+              <span class="stat-value">0.997 g/cm³</span>
+            </div>
+            <div class="stat">
+              <span class="stat-label">pH</span>
+              <span class="stat-value" id="ph-value">7.0</span>
+            </div>
+          </div>
+          <div class="card-bottom">
+            <span>CAS 7732-18-5</span>
+            <span>STABLE · NON-HAZ</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="demo-disclaimer">
+      <p class="disclaimer-feature">
+        Stacked lenses - compounded layered refraction
+      </p>
+      <p class="disclaimer-note">
+        Substance data is presented for illustration purposes only and is not a
+        safety reference. Always consult an official safety data sheet.
+      </p>
+    </div>
+
+    <!-- Libraries -->
+    <script
+      src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"
+      integrity="sha384-HOvlOYPIs/zjoIkWUGXkVmXsjr8GuZLV+Q+rcPwmJOVZVpvTSXQChiN4t9Euv9Vc"
+      crossorigin="anonymous"
+    ></script>
+
+    <!-- Scripts -->
+    <script src="/scripts/liquidGL.js"></script>
+    <script src="/scripts/liquidGL-helper.js"></script>
+    <script>
+      let glassEffect;
+
+      document.addEventListener("DOMContentLoaded", () => {
+        /* Global Navigation Setup */
+        const navToggle = document.querySelector(".nav-toggle");
+        const navContainer = document.querySelector(".nav-container");
+
+        if (navToggle && navContainer) {
+          navToggle.addEventListener("click", () => {
+            const isExpanded = navContainer.classList.contains("expanded");
+            navContainer.classList.toggle("expanded");
+            navToggle.setAttribute("aria-expanded", !isExpanded);
+          });
+
+          // Close navigation when clicking outside
+          document.addEventListener("click", (e) => {
+            if (!navContainer.contains(e.target)) {
+              navContainer.classList.remove("expanded");
+              navToggle.setAttribute("aria-expanded", "false");
+            }
+          });
+
+          // Close navigation when pressing Escape
+          document.addEventListener("keydown", (e) => {
+            if (
+              e.key === "Escape" &&
+              navContainer.classList.contains("expanded")
+            ) {
+              navContainer.classList.remove("expanded");
+              navToggle.setAttribute("aria-expanded", "false");
+            }
+          });
+        }
+
+        /* Simulated readouts: drift naturally in small steps */
+        const chemValueEl = document.getElementById("chem-value");
+        const phEl = document.getElementById("ph-value");
+        let temp = 102.4;
+        let ph = 7.0;
+        setInterval(() => {
+          temp += (Math.random() - 0.5) * 0.4;
+          temp = Math.min(103.8, Math.max(100.9, temp));
+          chemValueEl.textContent = `${temp.toFixed(1)} °C`;
+          ph += (Math.random() - 0.5) * 0.1;
+          ph = Math.min(7.2, Math.max(6.8, ph));
+          phEl.textContent = ph.toFixed(1);
+        }, 900);
+
+        /* Values update continuously - keep that region of the snapshot
+           live so the lenses above it never show a stale copy */
+        liquidGL.registerDynamic([chemValueEl, phEl]);
+
+        function initializeliquidGL() {
+          /* Parent pane */
+          glassEffect = liquidGL({
+            target: "#lens-l1",
+            snapshot: "body",
+            resolution: 2,
+            refraction: 0.01,
+            aberration: 0.1,
+            bevelDepth: 0.09,
+            bevelWidth: 0.18,
+            frost: 1,
+            shadow: true,
+            specular: false,
+            reveal: "none",
+            tilt: false,
+            tiltFactor: 5,
+            tiltEase: 400,
+            draggable: false,
+            interaction: "none",
+            interactionStrength: 0.5,
+            interactionRadius: 0.35,
+            interactionViscosity: 0.65,
+            magnify: 1.1,
+            tint: "rgba(36, 0, 21, 0.63)",
+            helper: true,
+          });
+
+          /* Inner left lens: renders on top of the parent's output */
+          liquidGL({
+            target: "#lens-l2",
+            snapshot: "body",
+            zIndex: 2,
+            resolution: 2,
+            refraction: 0.018,
+            aberration: 0,
+            bevelDepth: 0.12,
+            bevelWidth: 0.14,
+            frost: 0,
+            shadow: true,
+            specular: false,
+            reveal: "none",
+            tilt: false,
+            draggable: false,
+            magnify: 1.05,
+            tint: "rgba(0, 0, 0, 0.48)",
+            helper: false,
+          });
+
+          /* Inner bottom lens: stat band, subtler so text stays crisp */
+          liquidGL({
+            target: "#lens-l3",
+            snapshot: "body",
+            zIndex: 3,
+            resolution: 2,
+            refraction: 0.008,
+            aberration: 0,
+            bevelDepth: 0.06,
+            bevelWidth: 0.12,
+            frost: 0,
+            shadow: true,
+            specular: false,
+            reveal: "none",
+            tilt: false,
+            draggable: false,
+            magnify: 1,
+            tint: "rgba(0, 0, 0, 0.48)",
+            helper: false,
+          });
+        }
+
+        initializeliquidGL();
+
+        window.addEventListener("load", () => {
+          liquidGL.syncWith();
+        });
+      });
+    </script>
+  </body>
+</html>

@@ -4,7 +4,7 @@
  *
  * Author: NaughtyDuk© – https://liquidgl.naughtyduk.com
  * Licence: MIT
- * Version: v2.2.4
+ * Version: v3.0.0
  */
 
 (() => {
@@ -16,6 +16,7 @@
   let helperGUIs = [];
   let lilGuiLoaded = false;
   let lilGuiLoadPromise = null;
+  window.__liquidGLHelperGUIs__ = helperGUIs;
 
   function loadLilGui() {
     if (lilGuiLoaded) {
@@ -71,8 +72,8 @@
         --widget-color: rgb(39 39 42 / 50%);
         --hover-color: rgb(39 39 42 / 70%);
         --focus-color: rgb(39 39 42 / 90%);
-        --number-color: #fafafa;
-        --string-color: #fafafa;
+        --number-color: #f0f0f0;
+        --string-color: #f0f0f0;
         --font-size: 13px;
         --input-font-size: 13px;
         --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -162,11 +163,13 @@
         ln.options[key] = value;
         if (key === "shadow") ln.setShadow(value);
         if (key === "tilt") ln.setTilt(value);
+        if (key === "draggable") ln.setDraggable(value);
       });
     };
 
     const refractionFolder = gui.addFolder("Refraction");
-    refractionFolder
+    const controllers = {};
+    controllers.refraction = refractionFolder
       .add(state, "refraction", 0, 0.1, 0.001)
       .name("Refraction")
       .onChange((v) => applyToLenses("refraction", v));
@@ -178,12 +181,12 @@
       .add(state, "bevelDepth", 0, 0.2, 0.001)
       .name("Bevel Depth")
       .onChange((v) => applyToLenses("bevelDepth", v));
-    refractionFolder
+    controllers.bevelWidth = refractionFolder
       .add(state, "bevelWidth", 0, 0.5, 0.001)
       .name("Bevel Width")
       .onChange((v) => applyToLenses("bevelWidth", v));
     refractionFolder
-      .add(state, "magnify", 1, 5, 0.1)
+      .add(state, "magnify", 0.001, 3, 0.001)
       .name("Magnify")
       .onChange((v) => applyToLenses("magnify", v));
 
@@ -201,7 +204,58 @@
       .name("Shadow")
       .onChange((v) => applyToLenses("shadow", v));
 
-    const tiltFolder = gui.addFolder("Tilt");
+    const tintState = {
+      color: state.tint
+        ? `#${state.tint
+            .slice(0, 3)
+            .map((c) =>
+              Math.round(c * 255)
+                .toString(16)
+                .padStart(2, "0"),
+            )
+            .join("")}`
+        : "#000000",
+      amount: state.tint ? state.tint[3] : 0,
+    };
+    const applyTint = () => {
+      lensList.forEach((ln) =>
+        ln.setTint(
+          `${tintState.color}${Math.round(tintState.amount * 255)
+            .toString(16)
+            .padStart(2, "0")}`,
+        ),
+      );
+    };
+    surfaceFolder
+      .addColor(tintState, "color")
+      .name("Tint Colour")
+      .onChange(applyTint);
+    surfaceFolder
+      .add(tintState, "amount", 0, 1, 0.01)
+      .name("Tint Amount")
+      .onChange(applyTint);
+
+    const tiltFolder = gui.addFolder("Interaction");
+    tiltFolder
+      .add(state, "interaction", ["none", "fluid"])
+      .name("Mode")
+      .onChange((v) => applyToLenses("interaction", v));
+    tiltFolder
+      .add(state, "interactionStrength", 0, 5, 0.01)
+      .name("Fluid Strength")
+      .onChange((v) => applyToLenses("interactionStrength", v));
+    tiltFolder
+      .add(state, "interactionRadius", 0, 5, 0.01)
+      .name("Fluid Radius")
+      .onChange((v) => applyToLenses("interactionRadius", v));
+    tiltFolder
+      .add(state, "interactionViscosity", 0, 1, 0.01)
+      .name("Fluid Viscosity")
+      .onChange((v) => applyToLenses("interactionViscosity", v));
+    tiltFolder
+      .add(state, "draggable")
+      .name("Draggable")
+      .onChange((v) => applyToLenses("draggable", v));
     tiltFolder
       .add(state, "tilt")
       .name("Tilt")
@@ -319,7 +373,7 @@
     tiltFolder.close();
     initFolder.close();
 
-    helperGUIs.push({ gui, lenses: lensList });
+    helperGUIs.push({ gui, lenses: lensList, controllers });
     return gui;
   }
 
@@ -340,7 +394,19 @@
     lines.push(`  tilt: ${options.tilt},`);
     lines.push(`  tiltFactor: ${options.tiltFactor},`);
     lines.push(`  tiltEase: ${options.tiltEase},`);
+    lines.push(`  draggable: ${options.draggable},`);
+    lines.push(`  interaction: "${options.interaction}",`);
+    lines.push(`  interactionStrength: ${options.interactionStrength},`);
+    lines.push(`  interactionRadius: ${options.interactionRadius},`);
+    lines.push(`  interactionViscosity: ${options.interactionViscosity},`);
     lines.push(`  magnify: ${options.magnify},`);
+    if (options.tint) {
+      const r = Math.round(options.tint[0] * 255);
+      const g = Math.round(options.tint[1] * 255);
+      const b = Math.round(options.tint[2] * 255);
+      const a = Math.round(options.tint[3] * 100) / 100;
+      lines.push(`  tint: "rgba(${r}, ${g}, ${b}, ${a})",`);
+    }
     lines.push(`  helper: false,`);
     lines.push(`});`);
 

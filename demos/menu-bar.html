@@ -1,0 +1,801 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Menu Bar - liquidGL – Liquid Glass - NaughtyDuk©</title>
+    <link rel="icon" href="/assets/images/favicon.ico" />
+    <meta
+      name="description"
+      content="A draggable Liquid Glass lens inside a menu bar, snapping fluidly between tabs with real-time refraction."
+    />
+    <meta
+      name="keywords"
+      content="liquidGL, webGL, liquid glass, menu bar, real-time, refraction, NaughtyDuk©"
+    />
+    <meta name="author" content="NaughtyDuk©" />
+    <meta name="robots" content="index, follow" />
+    <meta name="googlebot" content="index, follow" />
+    <meta property="og:image" content="/assets/images/_0005_menu-bar.jpg" />
+    <meta
+      property="og:title"
+      content="Menu Bar - liquidGL – Liquid Glass - NaughtyDuk©"
+    />
+    <meta
+      property="og:description"
+      content="A draggable Liquid Glass lens inside a menu bar, snapping fluidly between tabs with real-time refraction."
+    />
+    <meta
+      property="og:url"
+      content="https://liquidgl.naughtyduk.com/demos/menu-bar.html"
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="en_GB" />
+    <meta property="og:site_name" content="liquidGL" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta
+      name="twitter:title"
+      content="Menu Bar - liquidGL – Liquid Glass - NaughtyDuk©"
+    />
+    <meta
+      name="twitter:description"
+      content="A draggable Liquid Glass lens inside a menu bar, snapping fluidly between tabs with real-time refraction."
+    />
+    <meta name="twitter:image" content="/assets/images/_0005_menu-bar.jpg" />
+    <meta
+      name="twitter:url"
+      content="https://liquidgl.naughtyduk.com/demos/menu-bar.html"
+    />
+    <style>
+      :root {
+        --text-color: #333333;
+        --bg-color: #ececec;
+        --secondary-text: rgba(0, 0, 0, 0.5);
+        scroll-behavior: auto;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
+          Arial, sans-serif;
+        background-color: var(--bg-color);
+        color: var(--text-color);
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        line-height: 1.5;
+        height: 100svh;
+        overflow: hidden;
+      }
+
+      @media (max-width: 768px) {
+        .lil-gui {
+          display: none !important;
+        }
+      }
+
+      .bg-video {
+        position: fixed;
+        filter: hue-rotate(337deg) contrast(1.5) brightness(0.9);
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        z-index: 0;
+      }
+
+      /* Global Navigation Styles */
+      .global-nav {
+        position: fixed;
+        top: 1rem;
+        left: 1rem;
+        z-index: 10000;
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
+          Arial, sans-serif;
+      }
+
+      .nav-container {
+        background: #120d0e;
+        backdrop-filter: blur(16px);
+        border-radius: 12px;
+        border: 0.5px solid #1e1e20;
+        overflow: hidden;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 4px 16px rgb(0 0 0 / 20%);
+      }
+
+      .nav-toggle {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 16px;
+        background: transparent;
+        border: none;
+        color: #f0f0f0;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 500;
+        width: 100%;
+        text-align: left;
+        transition: all 0.2s ease;
+      }
+
+      .nav-toggle:hover {
+        background: rgb(21 21 25);
+      }
+
+      .nav-toggle svg {
+        width: 16px;
+        height: 16px;
+        fill: currentColor;
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      .nav-container.expanded .nav-toggle svg {
+        transform: rotate(180deg);
+      }
+
+      .nav-menu {
+        max-height: 0;
+        overflow: scroll;
+        transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      .nav-container.expanded .nav-menu {
+        max-height: 420px;
+        overflow-y: auto;
+      }
+
+      .nav-item {
+        display: block;
+        padding: 10px 16px;
+        color: #88888f;
+        text-decoration: none;
+        font-size: 13px;
+        font-weight: 400;
+        transition: all 0.2s ease;
+        border-top: 0.5px solid #1e1e20;
+        position: relative;
+        cursor: pointer;
+      }
+
+      .nav-item:hover {
+        background: rgb(21 21 25);
+        color: #f0f0f0;
+      }
+
+      .nav-item.active {
+        color: #f0f0f0;
+        background: rgb(21 21 25);
+      }
+
+      .nav-item.active::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background: #fafafa;
+      }
+
+      @media (max-width: 768px) {
+        .global-nav {
+          top: 0.5rem;
+          left: 0.5rem;
+        }
+
+        .nav-toggle {
+          padding: 10px 14px;
+          font-size: 13px;
+        }
+
+        .nav-item {
+          padding: 8px 14px;
+          font-size: 12px;
+        }
+      }
+
+      /* --- Menu Bar (part of the snapshot, no glass) --- */
+      .bar-anchor {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        pointer-events: none;
+        z-index: 100;
+      }
+
+      .menu-bar {
+        position: relative;
+        display: flex;
+        align-items: stretch;
+        padding: 8px;
+        border-radius: 999px;
+        background: #eaeaec;
+        backdrop-filter: blur(20px) saturate(160%);
+        border: 1px solid rgba(255, 255, 255, 0.6);
+        box-shadow:
+          0 10px 40px rgba(0, 0, 0, 0.12),
+          inset 0 0 0 0.5px rgba(0, 0, 0, 0.04);
+        pointer-events: auto;
+        user-select: none;
+        touch-action: none;
+      }
+
+      .tab {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+        width: 84px;
+        padding: 10px 0 8px;
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        color: #4a4a4a;
+        font-family: inherit;
+        font-size: 13px;
+        font-weight: 500;
+        letter-spacing: -0.01rem;
+        /* Dynamic register colour change */
+        transition: color 0.15s ease;
+        /* End dynamic register colour change */
+        outline: none;
+        overflow: hidden;
+      }
+
+      .tab svg {
+        width: 24px;
+        height: 24px;
+        fill: currentColor;
+        display: block;
+        flex-shrink: 0;
+      }
+
+      .tab-label {
+        white-space: nowrap;
+      }
+
+      .tab.active {
+        color: #f13545;
+      }
+
+      /* --- Liquid glass lens (the liquidGL target) --- */
+      .lens {
+        position: absolute;
+        z-index: 300;
+        top: 6px;
+        bottom: 6px;
+        left: 8px;
+        width: 84px;
+        border-radius: 999px;
+        will-change: left, width, transform;
+      }
+
+      @media (max-width: 768px) {
+        .tab {
+          width: 72px;
+          font-size: 12px;
+          padding: 8px 0 7px;
+        }
+      }
+
+      /* --- Demo disclaimer --- */
+      .demo-disclaimer {
+        position: fixed;
+        bottom: 2rem;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 100%;
+        max-width: 420px;
+        padding: 0 1rem;
+        text-align: center;
+        text-transform: uppercase;
+        z-index: 10001;
+        pointer-events: none;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        color: rgba(45, 45, 45, 0.92);
+      }
+
+      .demo-disclaimer .disclaimer-feature {
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: 0.02em;
+        margin-bottom: 6px;
+      }
+
+      .demo-disclaimer .disclaimer-note {
+        font-size: 9px;
+        font-weight: 400;
+        letter-spacing: -0.02em;
+        line-height: 1.25;
+        max-width: 280px;
+        max-width: 280px;
+        color: rgba(45, 45, 45, 0.6);
+      }
+
+      @media (max-width: 640px) {
+        .demo-disclaimer .disclaimer-note {
+          display: none;
+        }
+        .demo-disclaimer {
+          bottom: 1rem !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <video
+      data-liquid-ignore
+      class="bg-video"
+      src="/assets/videos/liquid-wave.mp4"
+      autoplay
+      loop
+      muted
+      playsinline
+      aria-label="Liquid wave animation"
+    ></video>
+
+    <!-- Global Navigation -->
+    <nav class="global-nav">
+      <div class="nav-container">
+        <button
+          class="nav-toggle"
+          aria-expanded="false"
+          aria-label="Toggle navigation menu"
+        >
+          <span>Demos</span>
+          <svg viewBox="0 0 16 16">
+            <path d="M8 11L3 6h10l-5 5z" />
+          </svg>
+        </button>
+        <div data-lenis-prevent class="nav-menu">
+          <a href="../index.html" class="nav-item">Index</a>
+          <a href="audio-player.html" class="nav-item">Audio Player</a>
+          <a href="menu-bar.html" class="nav-item active">Menu Bar</a>
+          <a href="ai-search.html" class="nav-item">AI Search</a>
+          <a href="multiple-lenses.html" class="nav-item">Multiple Lenses</a>
+          <a href="chromatic-aberration.html" class="nav-item"
+            >Chromatic Aberration</a
+          >
+          <a href="fluid-interaction.html" class="nav-item"
+            >Fluid Interaction</a
+          >
+          <a href="frost-specular.html" class="nav-item"
+            >Frost &amp; Specular</a
+          >
+          <a href="tinted-glass.html" class="nav-item">Tinted Glass</a>
+          <a href="stacked-lenses.html" class="nav-item">Stacked Lenses</a>
+          <a href="true-refraction.html" class="nav-item">True Refraction</a>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Menu bar: plain DOM, part of the liquidGL snapshot -->
+    <div class="bar-anchor">
+      <div class="menu-bar" id="menu-bar" role="tablist" aria-label="Menu">
+        <button class="tab active" role="tab" aria-selected="true">
+          <svg viewBox="0 0 24 24">
+            <path
+              d="M11.5 3.2a1.2 1.2 0 0 1 1 0l7.6 5.5a1.5 1.5 0 0 1 .55 1.16v9.14a1.5 1.5 0 0 1-1.5 1.5h-4.4a1 1 0 0 1-1-1v-4.9a2 2 0 0 0-4 0v4.9a1 1 0 0 1-1 1h-4.4a1.5 1.5 0 0 1-1.5-1.5V9.86a1.5 1.5 0 0 1 .55-1.16z"
+            />
+          </svg>
+          <span class="tab-label">Home</span>
+        </button>
+        <button class="tab" role="tab" aria-selected="false">
+          <svg viewBox="0 0 24 24">
+            <rect x="3.5" y="3.5" width="7" height="7" rx="2" />
+            <rect x="13.5" y="3.5" width="7" height="7" rx="2" />
+            <rect x="3.5" y="13.5" width="7" height="7" rx="2" />
+            <rect x="13.5" y="13.5" width="7" height="7" rx="2" />
+          </svg>
+          <span class="tab-label">New</span>
+        </button>
+        <button class="tab" role="tab" aria-selected="false">
+          <svg viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="2.4" />
+            <path
+              d="M8.9 8.9a4.4 4.4 0 0 0 0 6.2M15.1 8.9a4.4 4.4 0 0 1 0 6.2M6.2 6.2a8.2 8.2 0 0 0 0 11.6M17.8 6.2a8.2 8.2 0 0 1 0 11.6"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.9"
+              stroke-linecap="round"
+            />
+          </svg>
+          <span class="tab-label">Radio</span>
+        </button>
+        <button class="tab" role="tab" aria-selected="false">
+          <svg viewBox="0 0 24 24">
+            <rect x="6.5" y="5.5" width="11" height="13" rx="3" />
+            <path
+              d="M4 8.5v7a2 2 0 0 1 0-.01M20 8.5v7"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.9"
+              stroke-linecap="round"
+            />
+          </svg>
+          <span class="tab-label">Library</span>
+        </button>
+
+        <!-- The glass lens: dragged and snapped between tabs -->
+        <div class="lens" id="lens"></div>
+      </div>
+    </div>
+
+    <div class="demo-disclaimer">
+      <p class="disclaimer-feature">
+        Menu bar with draggable, fluid liquid glass
+      </p>
+      <p class="disclaimer-note">
+        Apple Music UI is property of the rights holders and is not affiliated
+        with liquidGL. Menu bar UI is provided as an example of liquidGL
+        features.
+      </p>
+    </div>
+
+    <!-- Libraries -->
+    <script
+      src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"
+      integrity="sha384-HOvlOYPIs/zjoIkWUGXkVmXsjr8GuZLV+Q+rcPwmJOVZVpvTSXQChiN4t9Euv9Vc"
+      crossorigin="anonymous"
+    ></script>
+    <script
+      src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/ScrollTrigger.min.js"
+      integrity="sha384-P8VzCVnT9NBUkMrpcIZrJbA7EBjJvh/fJS6PmP+4nLIM284DtsImIv8D0fFjIkeh"
+      crossorigin="anonymous"
+    ></script>
+    <script
+      src="https://cdn.jsdelivr.net/npm/@studio-freight/lenis@1.0.42/dist/lenis.min.js"
+      integrity="sha384-li4UtcFCH6QeUqR4JyV58/VgTprMuz9aauj+oWtew7V4Y7ZVjnvz5px9Y3UCG0Ea"
+      crossorigin="anonymous"
+    ></script>
+
+    <!-- Scripts -->
+    <script src="/scripts/liquidGL.js"></script>
+    <script src="/scripts/liquidGL-helper.js"></script>
+    <script>
+      let glassEffect;
+
+      document.addEventListener("DOMContentLoaded", () => {
+        /* Global Navigation Setup */
+        const navToggle = document.querySelector(".nav-toggle");
+        const navContainer = document.querySelector(".nav-container");
+
+        if (navToggle && navContainer) {
+          navToggle.addEventListener("click", () => {
+            const isExpanded = navContainer.classList.contains("expanded");
+            navContainer.classList.toggle("expanded");
+            navToggle.setAttribute("aria-expanded", !isExpanded);
+          });
+
+          // Close navigation when clicking outside
+          document.addEventListener("click", (e) => {
+            if (!navContainer.contains(e.target)) {
+              navContainer.classList.remove("expanded");
+              navToggle.setAttribute("aria-expanded", "false");
+            }
+          });
+
+          // Close navigation when pressing Escape
+          document.addEventListener("keydown", (e) => {
+            if (
+              e.key === "Escape" &&
+              navContainer.classList.contains("expanded")
+            ) {
+              navContainer.classList.remove("expanded");
+              navToggle.setAttribute("aria-expanded", "false");
+            }
+          });
+        }
+
+        /* --- Lens drag + snap --- */
+        const bar = document.getElementById("menu-bar");
+        const lens = document.getElementById("lens");
+        const tabs = Array.from(bar.querySelectorAll(".tab"));
+        let activeIndex = 0;
+
+        const tabRect = (i) => {
+          const t = tabs[i];
+          return {
+            left: t.offsetLeft,
+            width: t.offsetWidth,
+            center: t.offsetLeft + t.offsetWidth / 2,
+          };
+        };
+
+        const setActive = (i) => {
+          activeIndex = i;
+          tabs.forEach((t, j) => {
+            const on = j === i;
+            t.classList.toggle("active", on);
+            t.setAttribute("aria-selected", on);
+          });
+        };
+
+        const snapTo = (i, animate = true) => {
+          const r = tabRect(i);
+          setActive(i);
+          if (animate) {
+            gsap.to(lens, {
+              left: r.left,
+              width: r.width,
+              duration: 0.7,
+              ease: "elastic.out(1, 0.7)",
+              overwrite: "auto",
+            });
+          } else {
+            gsap.set(lens, { left: r.left, width: r.width });
+          }
+        };
+
+        /* --- Page-load intro: the bar opens tab-by-tab from its centre.
+           Each tab's own width tweens 0 -> natural, so the bar (which has
+           no explicit width of its own) simply hugs its growing content —
+           .bar-anchor keeps that cluster centred every frame, so nothing
+           slides or hangs off-left. Home opens first, its icon + label
+           popping in late in its own tween; the remaining tabs then open
+           staggered. The lens is kept at zero width throughout (it never
+           paints, see liquidGL's `rect.width <= 0` guard) and is only
+           given real bounds once the DOM has settled and a fresh snapshot
+           has been captured, so it can never refract a stale frame. */
+        const naturalWidths = tabs.map((t) => t.offsetWidth);
+        const icons = tabs.map((t) => t.querySelector("svg"));
+        const labels = tabs.map((t) => t.querySelector(".tab-label"));
+
+        gsap.set(tabs, { width: 0 });
+        gsap.set([...icons, ...labels], {
+          scale: 0,
+          transformOrigin: "50% 50%",
+        });
+        gsap.set(lens, { width: 0, scale: 0, transformOrigin: "50% 50%" });
+        gsap.set(labels[0], { opacity: 0 });
+
+        // Snap the (still scale-0) lens over Home's settled rect, then pop
+        // it in — width/left land instantly, so the scale tween is the
+        // only thing the eye sees animate.
+        const revealLens = () => {
+          const renderer = window.__liquidGLRenderer__;
+          const reveal = () => {
+            snapTo(0, false);
+            gsap.to(lens, { scale: 1, duration: 0.55, ease: "back.out(2.4)" });
+          };
+          if (renderer && renderer.captureSnapshot) {
+            Promise.resolve(renderer.captureSnapshot()).then(reveal);
+          } else {
+            reveal();
+          }
+        };
+
+        const introTl = gsap.timeline({
+          onComplete: () => gsap.set(tabs, { clearProps: "width" }),
+        });
+
+        // Phase 1: Home's tab opens; its icon pops in and its label fades
+        // in alongside it, overlapping the tail of that expansion rather
+        // than waiting for it to finish.
+        introTl
+          .to(
+            tabs[0],
+            { width: naturalWidths[0], duration: 0.5, ease: "expo.out" },
+            0,
+          )
+          .to(
+            icons[0],
+            { scale: 1, duration: 0.42, ease: "back.out(2.4)" },
+            0.28,
+          )
+          .to(
+            labels[0],
+            { scale: 1, opacity: 1, duration: 0.42, ease: "back.out(2.4)" },
+            0.28,
+          );
+
+        // Phase 2: the remaining tabs open staggered, each one's icon +
+        // label following as its own section of the bar finishes opening.
+        // Starts 100ms after Home's icon + label have landed.
+        const tabGap = 0.16;
+        tabs.slice(1).forEach((tab, j) => {
+          const i = j + 1;
+          const t0 = 0.8 + j * tabGap;
+          introTl
+            .to(
+              tab,
+              { width: naturalWidths[i], duration: 0.45, ease: "expo.out" },
+              t0,
+            )
+            .to(
+              icons[i],
+              { scale: 1, duration: 0.4, ease: "back.out(2.3)" },
+              t0 + 0.22,
+            )
+            .to(
+              labels[i],
+              { scale: 1, duration: 0.35, ease: "back.out(2)" },
+              t0 + 0.3,
+            );
+        });
+
+        // Pull the lens reveal forward slightly ahead of the timeline's
+        // natural end — the tail of the last tab's ease is visually
+        // settled by then, so there's no risk of an unsettled frame.
+        introTl.call(revealLens, null, "-=0.35");
+
+        tabs.forEach((tab, i) => {
+          tab.addEventListener("click", () => snapTo(i));
+          tab.addEventListener("pointerdown", () =>
+            gsap.to(lens, { scale: 1.2, duration: 0.3, ease: "power2.out" }),
+          );
+          tab.addEventListener("pointerup", () =>
+            gsap.to(lens, {
+              scale: 1,
+              duration: 0.7,
+              ease: "elastic.out(1, 0.7)",
+            }),
+          );
+          tab.addEventListener("pointercancel", () =>
+            gsap.to(lens, {
+              scale: 1,
+              duration: 0.7,
+              ease: "elastic.out(1, 0.7)",
+            }),
+          );
+        });
+
+        let lastX = 0;
+
+        window.addEventListener("resize", () => snapTo(activeIndex, false));
+
+        window.addEventListener("keydown", (e) => {
+          if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+          if (!e.repeat) {
+            gsap.to(lens, { scale: 1.2, duration: 0.3, ease: "power2.out" });
+          }
+          if (e.key === "ArrowLeft") {
+            snapTo(Math.max(activeIndex - 1, 0));
+          } else {
+            snapTo(Math.min(activeIndex + 1, tabs.length - 1));
+          }
+        });
+
+        window.addEventListener("keyup", (e) => {
+          if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+          gsap.to(lens, {
+            scale: 1,
+            duration: 0.7,
+            ease: "elastic.out(1, 0.7)",
+          });
+        });
+
+        /* liquidGL: target the lens element only */
+        function initializeliquidGL() {
+          glassEffect = liquidGL({
+            target: "#lens",
+            snapshot: "body",
+            resolution: 4,
+            refraction: 0.016,
+            aberration: 1,
+            bevelDepth: 0.014,
+            bevelWidth: 0.071,
+            frost: 0,
+            shadow: true,
+            specular: true,
+            reveal: "none",
+            tilt: false,
+            tiltFactor: 5,
+            tiltEase: 400,
+            draggable: true,
+            interaction: "fluid",
+            interactionStrength: 0.5,
+            interactionRadius: 3,
+            interactionViscosity: 0.25,
+            magnify: 1.05,
+            tint: "rgba(234, 234, 236, 0.24)",
+            helper: true,
+            on: {
+              dragstart: () => {
+                gsap.killTweensOf(lens);
+                lastX = 0;
+                gsap.to(lens, {
+                  scale: 1.2,
+                  duration: 0.3,
+                  ease: "power2.out",
+                });
+              },
+              drag: (lensRef, info) => {
+                const lr = lens.getBoundingClientRect();
+                const barRect = bar.getBoundingClientRect();
+                // Clamp inside the bar padding and cancel vertical drag
+                const minLeft = barRect.left + 8;
+                const maxLeft = barRect.right - 8 - lr.width;
+                const clamped = Math.min(Math.max(lr.left, minLeft), maxLeft);
+                gsap.set(lens, { x: info.x + (clamped - lr.left), y: 0 });
+                // Stretch width slightly with drag speed
+                if (lastX) {
+                  const stretch = Math.min(
+                    Math.abs(info.clientX - lastX) * 0.02,
+                    0.35,
+                  );
+                  gsap.set(lens, {
+                    width: tabRect(activeIndex).width * (1 + stretch),
+                  });
+                }
+                lastX = info.clientX;
+              },
+              dragend: (lensRef) => {
+                const lr = lens.getBoundingClientRect();
+                const center = lr.left + lr.width / 2;
+                // Fold drag offset into the layout position. Measuring via
+                // getBoundingClientRect() before/after clearDrag() is what
+                // caused the aggressive bounce: clearDrag() restores
+                // whatever transform was saved when dragging was bound —
+                // "scale(0)", from the intro's starting state — so a
+                // rect taken right after it is corrupted. offsetLeft plus
+                // GSAP's own tracked x-translate isn't affected by that.
+                const restingLeft =
+                  lens.offsetLeft + gsap.getProperty(lens, "x");
+                lensRef.clearDrag();
+                lens.style.left = `${restingLeft}px`;
+                gsap.set(lens, { x: 0, y: 0 });
+                // Snap to nearest tab
+                let nearest = 0;
+                let best = Infinity;
+                tabs.forEach((tab, i) => {
+                  const tr = tab.getBoundingClientRect();
+                  const d = Math.abs(tr.left + tr.width / 2 - center);
+                  if (d < best) {
+                    best = d;
+                    nearest = i;
+                  }
+                });
+                snapTo(nearest);
+                gsap.to(lens, {
+                  scale: 1,
+                  duration: 0.7,
+                  ease: "elastic.out(1, 0.7)",
+                });
+              },
+            },
+          });
+        }
+
+        initializeliquidGL();
+
+        // Tabs change color (active/inactive) after init as the user drags
+        // the lens around — register them so liquidGL keeps refracting their
+        // live state instead of the state at first snapshot.
+        liquidGL.registerDynamic(tabs);
+
+        // Re-capture once the colour transition settles so the tab icon's
+        // `fill: currentColor` is never left stale in the snapshot.
+        tabs.forEach((t) =>
+          t.addEventListener(
+            "transitionend",
+            (e) => {
+              if (e.propertyName !== "color") return;
+              const renderer = window.__liquidGLRenderer__;
+              if (renderer && renderer.captureSnapshot)
+                renderer.captureSnapshot();
+            },
+            { passive: true },
+          ),
+        );
+
+        window.addEventListener("load", () => {
+          liquidGL.syncWith();
+        });
+      });
+    </script>
+  </body>
+</html>
