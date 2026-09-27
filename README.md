@@ -9,7 +9,7 @@
 
 `liquidGL` turns any fixed or sticky-positioned element into a perfectly refracted, glossy "glass pane" rendered in WebGPU (with automatic fallback to WebGL).
 
-<a href="https://liquidgl.naughtyduk.com" target="_blank" rel="noopener noreferrer"><strong>TRY IT OUT</strong></a>
+<a href="https://liquidgl.naughtyduk.com" target="_blank" rel="noopener noreferrer"><img src="/assets/images/try-it-out-npm.png" alt="Try it out" height="48"/></a>
 
 <a href="https://liquidgl.naughtyduk.com/demos/audio-player.html" target="_blank" rel="noopener noreferrer"><strong>Audio Player</strong></a> | <a href="https://liquidgl.naughtyduk.com/demos/menu-bar.html" target="_blank" rel="noopener noreferrer"><strong>Menu Bar</strong></a> | <a href="https://liquidgl.naughtyduk.com/demos/ai-search.html" target="_blank" rel="noopener noreferrer"><strong>AI Search</strong></a> | <a href="https://liquidgl.naughtyduk.com/demos/multiple-lenses.html" target="_blank" rel="noopener noreferrer"><strong>Multiple Lenses</strong></a> | <a href="https://liquidgl.naughtyduk.com/demos/chromatic-aberration.html" target="_blank" rel="noopener noreferrer"><strong>Chromatic Aberration</strong></a> | <a href="https://liquidgl.naughtyduk.com/demos/fluid-interaction.html" target="_blank" rel="noopener noreferrer"><strong>Fluid Interaction</strong></a> | <a href="https://liquidgl.naughtyduk.com/demos/frost-specular.html" target="_blank" rel="noopener noreferrer"><strong>Frost & Specular</strong></a> | <a href="https://liquidgl.naughtyduk.com/demos/tinted-glass.html" target="_blank" rel="noopener noreferrer"><strong>Tinted Glass</strong></a> | <a href="https://liquidgl.naughtyduk.com/demos/stacked-lenses.html" target="_blank" rel="noopener noreferrer"><strong>Stacked Lenses</strong></a> | <a href="https://liquidgl.naughtyduk.com/demos/true-refraction.html" target="_blank" rel="noopener noreferrer"><strong>True Refraction</strong></a>
 
@@ -34,6 +34,10 @@
 - **zIndex Support** — the new `zIndex` option gives explicit control over a lens's stacking position, used to order stacked/multiple lenses and their shadow/tilt layers. Defaults to the element's own effective z-index.
 
 - **Per-lens Destroy Method** — each lens instance now exposes `lens.destroy()`, tearing down just that lens (styles, listeners and GPU resources) without affecting other lenses sharing the same canvas.
+
+---
+
+<a href="https://liquidgl.naughtyduk.com"><img src="/assets/images/liquidGL-carousel-readme.gif" alt="liquidGL examples" width="100%" height="auto"/></a>
 
 ---
 
