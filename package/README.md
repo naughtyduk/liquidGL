@@ -152,6 +152,10 @@ const glassEffect = liquidGL({
     // fire when `draggable: true` and the lens is picked up, moved and released.
   },
 });
+
+// glassEffect.destroy() removes the lens entirely - restores the
+// element's original styles, removes event listeners and releases
+// GPU resources. Other lenses sharing the canvas are unaffected.
 ```
 
 ---
@@ -248,6 +252,7 @@ Passing `gsap` lets `liquidGL` drive its render loop from the GSAP ticker and ke
 | `on.dragstart`         | function          | `—`           | Fires when a `draggable` lens is picked up. Receives the lens instance and a `{ x, y }` info object.                                                                                                                                                     |
 | `on.drag`              | function          | `—`           | Fires on every pointer move while dragging. Receives the lens instance and a `{ x, y }` info object.                                                                                                                                                     |
 | `on.dragend`           | function          | `—`           | Fires when a dragged lens is released. Receives the lens instance and a `{ x, y }` info object.                                                                                                                                                          |
+| `destroy()`            | method            | `—`           | Tears down the lens: restores the element's original styles, removes its event listeners and releases its GPU resources. Other lenses sharing the canvas are unaffected.                                                                                 |
 
 > The `target` parameter is required; all others are optional. Each lens instance also exposes `lens.setTint()`, `lens.setDraggable()` and `lens.destroy()` for runtime control.
 
