@@ -1983,7 +1983,7 @@
         ></video>
         <video
           id="bg-video-b"
-          src="assets/videos/sir-bkg.mp4"
+          data-src="assets/videos/sir-bkg.mp4"
           autoplay
           loop
           muted
@@ -2157,7 +2157,7 @@
     <section class="showcase">
       <a class="showcase-item" href="demos/menu-bar.html">
         <video
-          src="assets/videos/lgl-menu-bar.mp4"
+          data-src="assets/videos/lgl-menu-bar.mp4"
           poster="assets/images/lgl-menu-bar-poster.jpg"
           autoplay
           muted
@@ -2185,7 +2185,7 @@
       </a>
       <a class="showcase-item" href="demos/ai-search.html">
         <video
-          src="assets/videos/lgl-ai-search.mp4"
+          data-src="assets/videos/lgl-ai-search.mp4"
           poster="assets/images/lgl-ai-search-poster.jpg"
           autoplay
           muted
@@ -2213,7 +2213,7 @@
       </a>
       <a class="showcase-item" href="demos/audio-player.html">
         <video
-          src="assets/videos/lgl-audio-player.mp4"
+          data-src="assets/videos/lgl-audio-player.mp4"
           poster="assets/images/lgl-audio-player-poster.jpg"
           autoplay
           muted
@@ -2238,7 +2238,7 @@
       </a>
       <a class="showcase-item" href="demos/chromatic-aberration.html">
         <video
-          src="assets/videos/lgl-feature-chromatic-aberration-1x1.mp4"
+          data-src="assets/videos/lgl-feature-chromatic-aberration-1x1.mp4"
           autoplay
           muted
           loop
@@ -2265,7 +2265,7 @@
       </a>
       <a class="showcase-item" href="demos/fluid-interaction.html">
         <video
-          src="assets/videos/lgl-feature-fluid-interaction-1x1.mp4"
+          data-src="assets/videos/lgl-feature-fluid-interaction-1x1.mp4"
           autoplay
           muted
           loop
@@ -2292,7 +2292,7 @@
       </a>
       <a class="showcase-item" href="demos/frost-specular.html">
         <video
-          src="assets/videos/lgl-feature-frost-specular-1x1.mp4"
+          data-src="assets/videos/lgl-feature-frost-specular-1x1.mp4"
           autoplay
           muted
           loop
@@ -2527,7 +2527,7 @@
           <div class="stage-media">
             <video
               class="stage-vid"
-              src="assets/videos/lgl-feature-true-refraction-16x9.mp4"
+              data-src="assets/videos/lgl-feature-true-refraction-16x9.mp4"
               autoplay
               muted
               loop
@@ -2537,7 +2537,7 @@
             ></video>
             <video
               class="stage-vid"
-              src="assets/videos/lgl-feature-chromatic-aberration-16x9.mp4"
+              data-src="assets/videos/lgl-feature-chromatic-aberration-16x9.mp4"
               muted
               loop
               playsinline
@@ -2546,7 +2546,7 @@
             ></video>
             <video
               class="stage-vid"
-              src="assets/videos/lgl-feature-tinted-glass-16x9.mp4"
+              data-src="assets/videos/lgl-feature-tinted-glass-16x9.mp4"
               muted
               loop
               playsinline
@@ -2555,7 +2555,7 @@
             ></video>
             <video
               class="stage-vid"
-              src="assets/videos/lgl-feature-fluid-interaction-16x9.mp4"
+              data-src="assets/videos/lgl-feature-fluid-interaction-16x9.mp4"
               muted
               loop
               playsinline
@@ -2564,7 +2564,7 @@
             ></video>
             <video
               class="stage-vid"
-              src="assets/videos/lgl-feature-stacked-lenses-16x9.mp4"
+              data-src="assets/videos/lgl-feature-stacked-lenses-16x9.mp4"
               muted
               loop
               playsinline
@@ -2573,7 +2573,7 @@
             ></video>
             <video
               class="stage-vid"
-              src="assets/videos/lgl-feature-frost-specular-16x9.mp4"
+              data-src="assets/videos/lgl-feature-frost-specular-16x9.mp4"
               muted
               loop
               playsinline
@@ -2582,7 +2582,7 @@
             ></video>
             <video
               class="stage-vid"
-              src="assets/videos/lgl-feature-multiple-lenses-16x9.mp4"
+              data-src="assets/videos/lgl-feature-multiple-lenses-16x9.mp4"
               muted
               loop
               playsinline
@@ -2602,7 +2602,7 @@
       <div class="support-frame">
         <video
           class="support-bkg"
-          src="assets/videos/sir-bkg.mp4"
+          data-src="assets/videos/sir-bkg.mp4"
           autoplay
           loop
           muted
@@ -3365,7 +3365,7 @@
         role="button"
         aria-label="Close video player"
       ></div>
-      <video src="assets/videos/liquidGL-v3-Promo.mp4"></video>
+      <video data-src="assets/videos/liquidGL-v3-Promo.mp4" preload="none"></video>
       <div class="custom-controls">
         <button
           class="play-pause-btn"
@@ -3679,6 +3679,40 @@
           });
         document.addEventListener("visibilitychange", () => {
           mediaState.forEach((_, video) => updateMedia(video));
+        });
+
+        /* sir-bkg.mp4 backs both the hero (bg-video-b) and the support
+           section. Each <video> element would issue its own range requests
+           for the same URL, so fetch once and share an object URL. */
+        const sirBkgSrc = "assets/videos/sir-bkg.mp4";
+        const sirBkgUrl = fetch(sirBkgSrc)
+          .then((res) => {
+            if (!res.ok) throw new Error(`Failed to fetch ${sirBkgSrc}`);
+            return res.blob();
+          })
+          .then((blob) => URL.createObjectURL(blob))
+          .catch(() => sirBkgSrc);
+
+        const videoLoader = new IntersectionObserver(
+          (entries) => {
+            entries.forEach(({ target, isIntersecting }) => {
+              if (!isIntersecting) return;
+              const src = target.dataset.src;
+              if (!src) return;
+              target.removeAttribute("data-src");
+              const applySrc = (url) => {
+                target.src = url;
+                if (mediaState.has(target)) updateMedia(target);
+              };
+              if (src === sirBkgSrc) sirBkgUrl.then(applySrc);
+              else applySrc(src);
+              videoLoader.unobserve(target);
+            });
+          },
+          { rootMargin: "100% 0px" },
+        );
+        document.querySelectorAll("video[data-src]").forEach((video) => {
+          if (!video.closest(".fullscreen-player")) videoLoader.observe(video);
         });
 
         const accItems = [...document.querySelectorAll(".acc-item")];
@@ -4474,6 +4508,12 @@
         );
         const progressBarFill = document.querySelector(".progress-bar-fill");
 
+        const ensureFullscreenSource = () => {
+          if (fullscreenVideo.src || !fullscreenVideo.dataset.src) return;
+          fullscreenVideo.src = fullscreenVideo.dataset.src;
+          fullscreenVideo.load();
+        };
+
         gsap.set(playIcon, {
           scale: 0,
           autoAlpha: 0,
@@ -4553,6 +4593,7 @@
 
         const openPlayer = () => {
           if (playerOpen) return;
+          ensureFullscreenSource();
           playerOpen = true;
           gsap.set(fullscreenPlayer, {
             visibility: "visible",
@@ -4576,9 +4617,12 @@
         };
         window.openPromoPlayer = openPlayer;
 
-        document
-          .querySelectorAll(".about-video-trigger")
-          .forEach((btn) => btn.addEventListener("click", openPlayer));
+        document.querySelectorAll(".about-video-trigger").forEach((btn) => {
+          btn.addEventListener("click", openPlayer);
+          btn.addEventListener("mouseenter", ensureFullscreenSource, {
+            once: true,
+          });
+        });
 
         if (videoTrigger) {
           videoTrigger.addEventListener("mouseenter", (e) => {
